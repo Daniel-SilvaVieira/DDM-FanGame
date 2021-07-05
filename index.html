@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<title>DungeonDice Monsters</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link rel="stylesheet" href="./public/style.css">
+</head>
+<body>
+	<div id="leftPannel" class="UI">
+		<div>
+			<div id="turnIndicator">Blue Turn</div>
+			<button id="addDie1">+ add die lv 1</button>
+			<button id="addDie2">+ add die lv 2</button>
+			<button id="addDie3">+ add die lv 3</button>
+			<button id="addDie4">+ add die lv 4</button>
+			<div id="diceZone">
+				<div id="resDice1" class="diceResult">
+					<img src="./public/icons/summon1-icon.png">
+				</div>
+				<div id="resDice2" class="diceResult">
+					<img src="./public/icons/summon1-icon.png">
+				</div>
+				<div id="resDice3" class="diceResult">
+					<img src="./public/icons/summon1-icon.png">
+				</div>
+			</div>
+			<button id="throwDice">Throw</button>
+		</div>
+		<div>
+			<h2>Monsters :</h2>
+			<div id="monstersField">
+				
+			</div>
+		</div>
+		<button id="endTurn">End Turn</button>
+	</div>
+
+	<div id="rightPannel" class="UI">
+		<div id="oponentSide">
+			<img src="./public/icons/heart.svg" class="heart"/>
+			<img src="./public/icons/heart.svg" class="heart"/>
+			<img src="./public/icons/heart.svg" class="heart"/>
+			<br/>
+			<br/>
+			<table>
+				<tr><td class="pad4px"><img src="./public/icons/move-icon.png" class="gameIcon"/></td><td id="oMovesCount" class="itemCount">0</td></tr>
+				<tr><td class="pad4px"><img src="./public/icons/attack-icon.png" class="gameIcon"></td><td id="oAttacksCount" class="itemCount">0</td></tr>
+				<tr><td class="pad4px"><img src="./public/icons/shield-icon.png" class="gameIcon"/></td><td id="oShieldsCount" class="itemCount">0</td></tr>
+				<tr><td class="pad4px"><img src="./public/icons/magic-icon.png" class="gameIcon"/></td><td id="oSpellsCount" class="itemCount">0</td></tr>
+				<tr><td class="pad4px"><img src="./public/icons/trap-icon.png" class="gameIcon"/></td><td id="oTrapsCount" class="itemCount">0</td></tr>
+			</table>
+		</div>
+		<div id="playerSide">
+			<img src="./public/icons/heart.svg" class="heart"/>
+			<img src="./public/icons/heart.svg" class="heart"/>
+			<img src="./public/icons/heart.svg" class="heart"/>
+			<br/>
+			<br/>
+			<table>
+				<tr><td class="pad4px"><img src="./public/icons/move-icon.png" class="gameIcon"/></td><td id="pMovesCount" class="itemCount">0</td></tr>
+				<tr><td class="pad4px"><img src="./public/icons/attack-icon.png" class="gameIcon"></td><td id="pAttacksCount" class="itemCount">0</td></tr>
+				<tr><td class="pad4px"><img src="./public/icons/shield-icon.png" class="gameIcon"/></td><td id="pShieldsCount" class="itemCount">0</td></tr>
+				<tr><td class="pad4px"><img src="./public/icons/magic-icon.png" class="gameIcon"/></td><td id="pSpellsCount" class="itemCount">0</td></tr>
+				<tr><td class="pad4px"><img src="./public/icons/trap-icon.png" class="gameIcon"/></td><td id="pTrapsCount" class="itemCount">0</td></tr>
+			</table>
+		</div>
+	</div>
+
+	<div id="monsterInfos1" class="monsterInfos">
+		<div class="monsterHeader" class="monsterInfos">
+			<span class="monsterName">Time wizard (auto)</span>
+			<span class="monsterlevel">1</span>
+		</div>
+		<div class="monsterSpeMove"> flying </div>
+		<div class="monsterDesc">
+			<div class="effectCost">0</div>
+			<div class="effectDesc">
+				When this monster is summoned, you can destroy the monster in the dungeon with the lowest Attack Power.
+				If there are 2 or more monsters with the same Attack Power points, you have to choose one as a target.
+			</div>
+		</div>
+		<div class="monsterFooter">
+			<span class="monsterType">Dark</span>
+			<span class="monsterStats">10 / 0 / 10</span>
+		</div>
+	</div>
+
+	<div id="monsterInfos2" class="monsterInfos">
+		<div class="monsterHeader">
+			<span class="monsterName">Time wizard (auto)</span>
+			<span class="monsterlevel">1</span>
+		</div>
+		<div class="monsterSpeMove"> flying </div>
+		<div class="monsterDesc">
+			<div class="effectCost">0</div>
+			<div class="effectDesc">
+				When this monster is summoned, you can destroy the monster in the dungeon with the lowest Attack Power.
+				If there are 2 or more monsters with the same Attack Power points, you have to choose one as a target.
+			</div>
+		</div>
+		<div class="monsterFooter">
+			<span class="monsterType">Dark</span>
+			<span class="monsterStats">10 / 0 / 10</span>
+		</div>
+	</div>
+	
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script type="module" src="./public/script.js"></script>
+</body>
+</html>
