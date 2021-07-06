@@ -9,7 +9,7 @@ import { FXAAShader } from './libs/three.js/examples/jsm/shaders/FXAAShader.js';
 import {Vector2, Vector3} from "./libs/three.js/build/three.module.js";
 import { FBXLoader } from "./libs/three.js/examples/jsm/loaders/FBXLoader.js";
 import { Player } from "./Player.js";
-import { Monster } from "./Monster.js";
+import * as MONSTER from "./jsClass/MonsterModule.js";
 
 /// VARIABLES ///
 let camera, scene, renderer, orbitControls, mouse, raycaster;
@@ -23,133 +23,22 @@ let redPathTiles = new THREE.Group();
 let movingPath = null;
 let selectedMonster1 = null,
 selectedMonster2 = null;
-const MONSTER_LIST = {
-	1: {
-		name : 'Time wizard',
-		modelFilename : 'timeMagician.fbx',
-		scale: 0.0002,
-		iconFilename : 'timeMagicianIcon.png',
-		effectCost : 0,
-		costType: '',
-		effectDesc: 'When this monster is summoned, you can destroy the monster in the dungeon with the lowest Attack Power.<br/>'+
-		'If there are 2 or more monsters with the same Attack Power points, you have to choose one as a target.',
-		type : 'Dark',
-		movement : null,
-		level : 1,
-		hp : 10,
-		atk : 0,
-		def : 10
-	},
-	2: {
-		name : 'Dark Magician Girl',
-		modelFilename : 'source/DarkMagicianGirl.fbx',
-		scale: 0.02,
-		iconFilename : 'ryuRanIcon.png',
-		effectCost : 2,
-		costType: '',
-		effectDesc: 'Add one Magic Crest to your Crest Counter',
-		type : 'Dark',
-		movement : null,
-		level : 2,
-		hp : 20,
-		atk : 20,
-		def : 20
-	},
-	3: {
-		name : 'Cursed dragon',
-		modelFilename : 'cursedDragon.fbx',
-		scale: 0.01,
-		iconFilename : 'CursedDragonIcon.png',
-		effectCost : null,
-		costType: null,
-		effectDesc: null,
-		type : 'Dragon',
-		movement : 'Flying',
-		level : 3,
-		hp : 20,
-		atk : 20,
-		def : 20
-	},
-	4: {
-		name : 'Summoned Skull',
-		modelFilename : 'summonedSkull.fbx',
-		scale: 0.0006,
-		iconFilename : 'SummonedSkulIconl.png',
-		effectCost : null,
-		costType: null,
-		effectDesc: null,
-		type : 'Dark',
-		movement : null,
-		level : 4,
-		hp : 40,
-		atk : 40,
-		def : 20
-	}
-};
 
 const player = new Player('Yugi Muto', true, 'Blue', 3, 0, 0, 0, 0, 0),
 opponent = new Player('Duke Devlin', false, 'Red', 3, 0, 0, 0, 0, 0);
+
+//let timeWizard = new Monster.TimeWizard(player);
 player.monsters = [
-	new Monster(MONSTER_LIST[1].name, player , MONSTER_LIST[1].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[1].iconFilename, MONSTER_LIST[1].effectCost, MONSTER_LIST[1].costType,
-		MONSTER_LIST[1].effectDesc,	MONSTER_LIST[1].type, MONSTER_LIST[1].movement, MONSTER_LIST[1].level, MONSTER_LIST[1].hp, MONSTER_LIST[1].atk, MONSTER_LIST[1].def),
-
-	new Monster(MONSTER_LIST[1].name, player , MONSTER_LIST[1].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[1].iconFilename, MONSTER_LIST[1].effectCost, MONSTER_LIST[1].costType,
-		MONSTER_LIST[1].effectDesc,	MONSTER_LIST[1].type, MONSTER_LIST[1].movement, MONSTER_LIST[1].level, MONSTER_LIST[1].hp, MONSTER_LIST[1].atk, MONSTER_LIST[1].def),
-
-	new Monster(MONSTER_LIST[1].name, player , MONSTER_LIST[1].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[1].iconFilename, MONSTER_LIST[1].effectCost, MONSTER_LIST[1].costType,
-		MONSTER_LIST[1].effectDesc,	MONSTER_LIST[1].type, MONSTER_LIST[1].movement, MONSTER_LIST[1].level, MONSTER_LIST[1].hp, MONSTER_LIST[1].atk, MONSTER_LIST[1].def),
-
-	new Monster(MONSTER_LIST[2].name, player , MONSTER_LIST[2].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[2].iconFilename, MONSTER_LIST[2].effectCost, MONSTER_LIST[2].costType,
-		MONSTER_LIST[2].effectDesc,	MONSTER_LIST[2].type, MONSTER_LIST[2].movement, MONSTER_LIST[2].level, MONSTER_LIST[2].hp, MONSTER_LIST[2].atk, MONSTER_LIST[2].def),
-
-	new Monster(MONSTER_LIST[2].name, player , MONSTER_LIST[2].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[2].iconFilename, MONSTER_LIST[2].effectCost, MONSTER_LIST[2].costType,
-		MONSTER_LIST[2].effectDesc,	MONSTER_LIST[2].type, MONSTER_LIST[2].movement, MONSTER_LIST[2].level, MONSTER_LIST[2].hp, MONSTER_LIST[2].atk, MONSTER_LIST[2].def),
-
-	new Monster(MONSTER_LIST[3].name, player , MONSTER_LIST[3].modelFilename, MONSTER_LIST[3].scale, MONSTER_LIST[3].iconFilename, MONSTER_LIST[3].effectCost, MONSTER_LIST[3].costType,
-		MONSTER_LIST[3].effectDesc,	MONSTER_LIST[3].type, MONSTER_LIST[3].movement, MONSTER_LIST[3].level, MONSTER_LIST[3].hp, MONSTER_LIST[3].atk, MONSTER_LIST[3].def),
-
-	new Monster(MONSTER_LIST[4].name, player , MONSTER_LIST[4].modelFilename, MONSTER_LIST[4].scale, MONSTER_LIST[4].iconFilename, MONSTER_LIST[4].effectCost, MONSTER_LIST[4].costType,
-		MONSTER_LIST[4].effectDesc,	MONSTER_LIST[4].type, MONSTER_LIST[4].movement, MONSTER_LIST[4].level, MONSTER_LIST[4].hp, MONSTER_LIST[4].atk, MONSTER_LIST[4].def),
-
-	new Monster(MONSTER_LIST[1].name, player , MONSTER_LIST[1].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[1].iconFilename, MONSTER_LIST[1].effectCost, MONSTER_LIST[1].costType,
-		MONSTER_LIST[1].effectDesc,	MONSTER_LIST[1].type, MONSTER_LIST[1].movement, MONSTER_LIST[1].level, MONSTER_LIST[1].hp, MONSTER_LIST[1].atk, MONSTER_LIST[1].def),
-
-	new Monster(MONSTER_LIST[1].name, player , MONSTER_LIST[1].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[1].iconFilename, MONSTER_LIST[1].effectCost, MONSTER_LIST[1].costType,
-		MONSTER_LIST[1].effectDesc,	MONSTER_LIST[1].type, MONSTER_LIST[1].movement, MONSTER_LIST[1].level, MONSTER_LIST[1].hp, MONSTER_LIST[1].atk, MONSTER_LIST[1].def),
-
-	new Monster(MONSTER_LIST[1].name, player , MONSTER_LIST[1].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[1].iconFilename, MONSTER_LIST[1].effectCost, MONSTER_LIST[1].costType,
-		MONSTER_LIST[1].effectDesc,	MONSTER_LIST[1].type, MONSTER_LIST[1].movement, MONSTER_LIST[1].level, MONSTER_LIST[1].hp, MONSTER_LIST[1].atk, MONSTER_LIST[1].def),
+	new MONSTER.TimeWizard(player), new MONSTER.TimeWizard(player), new MONSTER.TimeWizard(player),
+	new MONSTER.RyuRan(player), new MONSTER.RyuRan(player), new MONSTER.RyuRan(player),
+	new MONSTER.CursedDragon(player), new MONSTER.CursedDragon(player), new MONSTER.SummonedSkull(player),
+	new MONSTER.SummonedSkull(player)
 ];
 opponent.monsters = [
-	new Monster(MONSTER_LIST[1].name, opponent , MONSTER_LIST[1].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[1].iconFilename, MONSTER_LIST[1].effectCost, MONSTER_LIST[1].costType,
-		MONSTER_LIST[1].effectDesc,	MONSTER_LIST[1].type, MONSTER_LIST[1].movement, MONSTER_LIST[1].level, MONSTER_LIST[1].hp, MONSTER_LIST[1].atk, MONSTER_LIST[1].def),
-
-	new Monster(MONSTER_LIST[1].name, opponent , MONSTER_LIST[1].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[1].iconFilename, MONSTER_LIST[1].effectCost, MONSTER_LIST[1].costType,
-		MONSTER_LIST[1].effectDesc,	MONSTER_LIST[1].type, MONSTER_LIST[1].movement, MONSTER_LIST[1].level, MONSTER_LIST[1].hp, MONSTER_LIST[1].atk, MONSTER_LIST[1].def),
-
-	new Monster(MONSTER_LIST[2].name, opponent , MONSTER_LIST[2].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[2].iconFilename, MONSTER_LIST[2].effectCost, MONSTER_LIST[2].costType,
-		MONSTER_LIST[2].effectDesc,	MONSTER_LIST[2].type, MONSTER_LIST[2].movement, MONSTER_LIST[2].level, MONSTER_LIST[2].hp, MONSTER_LIST[2].atk, MONSTER_LIST[2].def),
-
-	new Monster(MONSTER_LIST[2].name, opponent , MONSTER_LIST[2].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[2].iconFilename, MONSTER_LIST[2].effectCost, MONSTER_LIST[2].costType,
-		MONSTER_LIST[2].effectDesc,	MONSTER_LIST[2].type, MONSTER_LIST[2].movement, MONSTER_LIST[2].level, MONSTER_LIST[2].hp, MONSTER_LIST[2].atk, MONSTER_LIST[2].def),
-
-	new Monster(MONSTER_LIST[1].name, opponent , MONSTER_LIST[1].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[1].iconFilename, MONSTER_LIST[1].effectCost, MONSTER_LIST[1].costType,
-		MONSTER_LIST[1].effectDesc,	MONSTER_LIST[1].type, MONSTER_LIST[1].movement, MONSTER_LIST[1].level, MONSTER_LIST[1].hp, MONSTER_LIST[1].atk, MONSTER_LIST[1].def),
-
-	new Monster(MONSTER_LIST[1].name, opponent , MONSTER_LIST[1].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[1].iconFilename, MONSTER_LIST[1].effectCost, MONSTER_LIST[1].costType,
-		MONSTER_LIST[1].effectDesc,	MONSTER_LIST[1].type, MONSTER_LIST[1].movement, MONSTER_LIST[1].level, MONSTER_LIST[1].hp, MONSTER_LIST[1].atk, MONSTER_LIST[1].def),
-
-	new Monster(MONSTER_LIST[1].name, opponent , MONSTER_LIST[1].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[1].iconFilename, MONSTER_LIST[1].effectCost, MONSTER_LIST[1].costType,
-		MONSTER_LIST[1].effectDesc,	MONSTER_LIST[1].type, MONSTER_LIST[1].movement, MONSTER_LIST[1].level, MONSTER_LIST[1].hp, MONSTER_LIST[1].atk, MONSTER_LIST[1].def),
-
-	new Monster(MONSTER_LIST[1].name, opponent , MONSTER_LIST[1].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[1].iconFilename, MONSTER_LIST[1].effectCost, MONSTER_LIST[1].costType,
-		MONSTER_LIST[1].effectDesc,	MONSTER_LIST[1].type, MONSTER_LIST[1].movement, MONSTER_LIST[1].level, MONSTER_LIST[1].hp, MONSTER_LIST[1].atk, MONSTER_LIST[1].def),
-
-	new Monster(MONSTER_LIST[1].name, opponent , MONSTER_LIST[1].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[1].iconFilename, MONSTER_LIST[1].effectCost, MONSTER_LIST[1].costType,
-		MONSTER_LIST[1].effectDesc,	MONSTER_LIST[1].type, MONSTER_LIST[1].movement, MONSTER_LIST[1].level, MONSTER_LIST[1].hp, MONSTER_LIST[1].atk, MONSTER_LIST[1].def),
-
-	new Monster(MONSTER_LIST[1].name, opponent , MONSTER_LIST[1].modelFilename, MONSTER_LIST[1].scale, MONSTER_LIST[1].iconFilename, MONSTER_LIST[1].effectCost, MONSTER_LIST[1].costType,
-		MONSTER_LIST[1].effectDesc,	MONSTER_LIST[1].type, MONSTER_LIST[1].movement, MONSTER_LIST[1].level, MONSTER_LIST[1].hp, MONSTER_LIST[1].atk, MONSTER_LIST[1].def)
+	new MONSTER.TimeWizard(opponent), new MONSTER.TimeWizard(opponent), new MONSTER.TimeWizard(opponent),
+	new MONSTER.RyuRan(opponent), new MONSTER.RyuRan(opponent), new MONSTER.RyuRan(opponent),
+	new MONSTER.CursedDragon(opponent), new MONSTER.CursedDragon(opponent), new MONSTER.SummonedSkull(opponent),
+	new MONSTER.SummonedSkull(opponent)
 ];
 let playerTurn = player, leftDiceThrows = 2, leftSummon = 1, isSummoning = 0;
 let blueLinkedPositions = [new Vector3(5,0,18), new Vector3(7,0,18), new Vector3(6,0,17)];
@@ -174,13 +63,25 @@ const pathpatterns = [
 		[new Vector3(0,0,0), new Vector3(-1,0,0), new Vector3(-1,0,1), new Vector3(1,0,0), new Vector3(2,0,0), new Vector3(2,0,-1)],
 		[new Vector3(0,0,0), new Vector3(0,0,1), new Vector3(1,0,1), new Vector3(0,0,-1), new Vector3(0,0,-2), new Vector3(-1,0,-2)],
 		[new Vector3(0,0,0), new Vector3(1,0,0), new Vector3(1,0,-1), new Vector3(-1,0,0), new Vector3(-2,0,0), new Vector3(-2,0,1)]
+	],
+	[
+		[new Vector3(0,0,0), new Vector3(0,0,-1), new Vector3(-1,0,-1), new Vector3(1,0,0), new Vector3(0,0,1), new Vector3(0,0,2)],
+		[new Vector3(0,0,0), new Vector3(-1,0,0), new Vector3(-1,0,1), new Vector3(0,0,-1), new Vector3(1,0,0), new Vector3(2,0,0)],
+		[new Vector3(0,0,0), new Vector3(0,0,1), new Vector3(1,0,1), new Vector3(-1,0,0), new Vector3(0,0,-1), new Vector3(0,0,-2)],
+		[new Vector3(0,0,0), new Vector3(1,0,0), new Vector3(1,0,-1), new Vector3(0,0,1), new Vector3(-1,0,0), new Vector3(-2,0,0)]
+	],
+	[
+		[new Vector3(0,0,0), new Vector3(-1,0,0), new Vector3(-1,0,-1), new Vector3(0,0,1), new Vector3(1,0,1), new Vector3(1,0,2)],
+		[new Vector3(0,0,0), new Vector3(0,0,1), new Vector3(-1,0,1), new Vector3(1,0,0), new Vector3(1,0,-1), new Vector3(2,0,-1)],
+		[new Vector3(0,0,0), new Vector3(1,0,0), new Vector3(1,0,1), new Vector3(0,0,-1), new Vector3(-1,0,-1), new Vector3(-1,0,-2)],
+		[new Vector3(0,0,0), new Vector3(0,0,-1), new Vector3(1,0,-1), new Vector3(-1,0,0), new Vector3(-1,0,1), new Vector3(-2,0,1)]
 	]
 ];
 // Dices
-const DICE1 = ['summon1-icon.png', 'summon1-icon.png', 'summon1-icon.png', 'summon1-icon.png', 'move-icon.png', 'shield2-icon.png'];
-const DICE2 = ['summon2-icon.png', 'summon2-icon.png', 'summon2-icon.png', 'move2-icon.png', 'attack2-icon.png', 'magic2-icon.png'];
-const DICE3 = ['summon3-icon.png', 'summon3-icon.png', 'move-icon.png', 'move-icon.png', 'attack-icon.png', 'trap2-icon.png'];
-const DICE4 = ['summon4-icon.png', 'move2-icon.png', 'attack-icon.png', 'shield-icon.png', 'magic-icon.png', 'trap-icon.png'];
+const DICE1 = ['lv1sum.png', 'lv1sum.png', 'lv1sum.png', 'lv1sum.png', 'lv1move.png', 'lv1shieldx2.png'];
+const DICE2 = ['lv2sum.png', 'lv2sum.png', 'lv2sum.png', 'lv2movex2.png', 'lv2attackx2.png', 'lv2magicx2.png'];
+const DICE3 = ['lv3sum.png', 'lv3sum.png', 'lv3move.png', 'lv3move.png', 'lv3attack.png', 'lv3trapx2.png'];
+const DICE4 = ['lv4sum.png', 'lv4movex2.png', 'lv4attack.png', 'lv4shield.png', 'lv4magic.png', 'lv4trap.png'];
 let blueLastDice = [1,1,1];
 let redLastDice = [1,1,1];
 // postprocessing
@@ -205,6 +106,7 @@ btnThrowDice = $('#throwDice'),
 resDice1 = $('#resDice1'),
 resDice2 = $('#resDice2'),
 resDice3 = $('#resDice3'),
+btnEndTurn = $('#endTurn'),
 turnIndicator = $('#turnIndicator'),
 monstersSelectionField = $('#monstersField'),
 monsterInfos1 = $('#monsterInfos1'),
@@ -226,7 +128,7 @@ function init(){
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	renderer.setClearColor(0x132644);
 	renderer.id = 'viewCanvas';
-	renderer.shadowMap.enabled = true;
+	//renderer.shadowMap.enabled = true;
 
 	mouse = new THREE.Vector2();
 	raycaster = new THREE.Raycaster();
@@ -291,9 +193,9 @@ function init(){
 	scene.add(ambientLight);
 	const pointLight = new THREE.PointLight(0xFFFFFF, 0.3, 1000);
 	pointLight.position.set(6, 5, 9);
-	pointLight.castShadow = true;
+	/*pointLight.castShadow = true;
 	pointLight.shadow.mapSize.width = 1024;
-	pointLight.shadow.mapSize.height = 1024;
+	pointLight.shadow.mapSize.height = 1024;*/
 
 	const d = 10;
 	pointLight.shadow.camera.left = - d;
@@ -346,17 +248,17 @@ function buildTerrain(){
 	}
 	scene.add(ground);
 	
-	const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+	const cubeGeometry = new THREE.BoxGeometry(1, 1.6, 1);
 	const blueMaterial = new THREE.MeshStandardMaterial({color : '#3b7fdb'});
 	const redMaterial = new THREE.MeshStandardMaterial({color : '#db3b3b'});
 	
 	const bluePlayerBox = new THREE.Mesh(cubeGeometry, blueMaterial);
-	bluePlayerBox.position.set(6, 0.6, 18);
+	bluePlayerBox.position.set(6, 0.9, 18);
 	/*bluePlayerBox.receiveShadow = true;
 	bluePlayerBox.castShadow = true;*/
 	scene.add(bluePlayerBox);
 	const redPlayerBox = new THREE.Mesh(cubeGeometry, redMaterial);
-	redPlayerBox.position.set(6, 0.6, 0);
+	redPlayerBox.position.set(6, 0.9, 0);
 	/*redPlayerBox.receiveShadow = true;
 	redPlayerBox.castShadow = true;*/
 	scene.add(redPlayerBox);
@@ -414,43 +316,6 @@ monstersSelectionField.on('click', '.monsterIcon', function(){
 });
 
 function showMonsterInfos(selectedMonster){
-	/*
-	let found = false;
-	// if the selected monster is owned by the playing player
-	playerTurn.monsters.forEach(function(monster){
-		if(monster.id == selectedMonsterID){
-			monsterInfos1.css('display', 'flex');
-			monsterInfos1.find('.monsterName').html(monster.name);
-			monsterInfos1.find('.monsterlevel').html(monster.level);
-			monsterInfos1.find('.monsterSpeMove').html(monster.movement);
-			monsterInfos1.find('.effectCost').html(monster.effectCost);
-			monsterInfos1.find('.effectDesc').html(monster.effectDesc);
-			monsterInfos1.find('.monsterType').html(monster.type);
-			monsterInfos1.find('.monsterStats').html(monster.hp+ ' / ' +monster.atk+ ' / ' +monster.def);
-			found = true;
-		}
-	});
-	// if the selected monster is owned by the opponent player
-	if(!found){
-		let aPlayer;
-		if(playerTurn.color == 'Blue')
-			aPlayer = player;
-		else
-			aPlayer = opponent;
-
-		aPlayer.monsters.forEach(function(monster){
-			if(monster.id == selectedMonsterID){
-				monsterInfos2.css('display', 'flex');
-				monsterInfos2.find('.monsterName').html(monster.name);
-				monsterInfos2.find('.monsterlevel').html(monster.level);
-				monsterInfos2.find('.monsterSpeMove').html(monster.movement);
-				monsterInfos2.find('.effectCost').html(monster.effectCost);
-				monsterInfos2.find('.effectDesc').html(monster.effectDesc);
-				monsterInfos2.find('.monsterType').html(monster.type);
-				monsterInfos2.find('.monsterStats').html(monster.hp+ ' / ' +monster.atk+ ' / ' +monster.def);
-			}
-		});
-	}*/
 	let selector;
 	if(selectedMonster.owner.color === playerTurn.color)
 		selector = monsterInfos1;
@@ -459,12 +324,12 @@ function showMonsterInfos(selectedMonster){
 
 	selector.css('display', 'flex');
 	selector.find('.monsterName').html(selectedMonster.name);
-	selector.find('.monsterlevel').html(selectedMonster.level);
+	selector.find('.monsterlevel').html('lv. '+selectedMonster.level);
 	selector.find('.monsterSpeMove').html(selectedMonster.movement);
 	selector.find('.effectCost').html(selectedMonster.effectCost);
 	selector.find('.effectDesc').html(selectedMonster.effectDesc);
 	selector.find('.monsterType').html(selectedMonster.type);
-	selector.find('.monsterStats').html(selectedMonster.leftHp+ ' / ' +selectedMonster.atk+ ' / ' +selectedMonster.def);
+	selector.find('.monsterStats').html('hp: ' +selectedMonster.leftHp+ ' / atk: ' +selectedMonster.atk+ ' / def : ' +selectedMonster.def);
 }
 
 function switchTurn(){
@@ -483,17 +348,17 @@ function switchTurn(){
 			playerTurn = opponent;
 			monsterInfos1.css('background-color', 'rgb(179 146 146 / 80%)');
 			monsterInfos2.css('background-color', 'rgb(149 146 179 / 80%)');
-			resDice1.html('<img src="./public/icons/summon'+redLastDice[0]+'-icon.png">');
-			resDice2.html('<img src="./public/icons/summon'+redLastDice[1]+'-icon.png">');
-			resDice3.html('<img src="./public/icons/summon'+redLastDice[2]+'-icon.png">');
+			resDice1.html('<img src="./public/icons/dice/lv'+redLastDice[0]+'sum.png">');
+			resDice2.html('<img src="./public/icons/dice/lv'+redLastDice[1]+'sum.png">');
+			resDice3.html('<img src="./public/icons/dice/lv'+redLastDice[2]+'sum.png">');
 		}
 		else{
 			playerTurn = player;
 			monsterInfos1.css('background-color', 'rgb(149 146 179 / 80%)');
 			monsterInfos2.css('background-color', 'rgb(179 146 146 / 80%)');
-			resDice1.html('<img src="./public/icons/summon'+blueLastDice[0]+'-icon.png">');
-			resDice2.html('<img src="./public/icons/summon'+blueLastDice[1]+'-icon.png">');
-			resDice3.html('<img src="./public/icons/summon'+blueLastDice[2]+'-icon.png">');
+			resDice1.html('<img src="./public/icons/dice/lv'+blueLastDice[0]+'sum.png">');
+			resDice2.html('<img src="./public/icons/dice/lv'+blueLastDice[1]+'sum.png">');
+			resDice3.html('<img src="./public/icons/dice/lv'+blueLastDice[2]+'sum.png">');
 		}
 		
 		turnIndicator.html(playerTurn.color+ ' Turn');
@@ -508,6 +373,11 @@ function switchTurn(){
 		selectedMonster1 = null;
 		selectedMonster2 = null;
 		refreshMonsterList();
+	}else{
+		movingPath.parent.remove(movingPath);
+		movingPath = null;
+		isSummoning = 0;
+		btnEndTurn.html('End Turn');
 	}
 }
 
@@ -593,18 +463,18 @@ btnAddDie1.on('click', function(){
 
 	switch(aArray.length){
 		case 1:
-			resDice1.html('<img src="./public/icons/summon1-icon.png">');
+			resDice1.html('<img src="./public/icons/dice/lv1sum.png">');
 			resDice2.html('');
 			resDice3.html('');
 			btnThrowDice.attr("disabled", true);
 			break;
 		case 2:
-			resDice2.html('<img src="./public/icons/summon1-icon.png">');
+			resDice2.html('<img src="./public/icons/dice/lv1sum.png">');
 			resDice3.html('');
 			btnThrowDice.attr("disabled", true);
 			break;
 		case 3:
-			resDice3.html('<img src="./public/icons/summon1-icon.png">');
+			resDice3.html('<img src="./public/icons/dice/lv1sum.png">');
 			btnThrowDice.attr("disabled", false);
 			break;
 	}
@@ -627,18 +497,18 @@ btnAddDie2.on('click', function(){
 
 	switch(aArray.length){
 		case 1:
-			resDice1.html('<img src="./public/icons/summon2-icon.png">');
+			resDice1.html('<img src="./public/icons/dice/lv2sum.png">');
 			resDice2.html('');
 			resDice3.html('');
 			btnThrowDice.attr("disabled", true);
 			break;
 		case 2:
-			resDice2.html('<img src="./public/icons/summon2-icon.png">');
+			resDice2.html('<img src="./public/icons/dice/lv2sum.png">');
 			resDice3.html('');
 			btnThrowDice.attr("disabled", true);
 			break;
 		case 3:
-			resDice3.html('<img src="./public/icons/summon2-icon.png">');
+			resDice3.html('<img src="./public/icons/dice/lv2sum.png">');
 			btnThrowDice.attr("disabled", false);
 			break;
 	}
@@ -661,18 +531,18 @@ btnAddDie3.on('click', function(){
 
 	switch(aArray.length){
 		case 1:
-			resDice1.html('<img src="./public/icons/summon3-icon.png">');
+			resDice1.html('<img src="./public/icons/dice/lv3sum.png">');
 			resDice2.html('');
 			resDice3.html('');
 			btnThrowDice.attr("disabled", true);
 			break;
 		case 2:
-			resDice2.html('<img src="./public/icons/summon3-icon.png">');
+			resDice2.html('<img src="./public/icons/dice/lv3sum.png">');
 			resDice3.html('');
 			btnThrowDice.attr("disabled", true);
 			break;
 		case 3:
-			resDice3.html('<img src="./public/icons/summon3-icon.png">');
+			resDice3.html('<img src="./public/icons/dice/lv3sum.png">');
 			btnThrowDice.attr("disabled", false);
 			break;
 	}
@@ -695,64 +565,68 @@ btnAddDie4.on('click', function(){
 
 	switch(aArray.length){
 		case 1:
-			resDice1.html('<img src="./public/icons/summon4-icon.png">');
+			resDice1.html('<img src="./public/icons/dice/lv4sum.png">');
 			resDice2.html('');
 			resDice3.html('');
 			btnThrowDice.attr("disabled", true);
 			break;
 		case 2:
-			resDice2.html('<img src="./public/icons/summon4-icon.png">');
+			resDice2.html('<img src="./public/icons/dice/lv4sum.png">');
 			resDice3.html('');
 			btnThrowDice.attr("disabled", true);
 			break;
 		case 3:
-			resDice3.html('<img src="./public/icons/summon4-icon.png">');
+			resDice3.html('<img src="./public/icons/dice/lv4sum.png">');
 			btnThrowDice.attr("disabled", false);
 			break;
 	}
 });
 
 function handleDicesResults(res1, res2, res3){
-	resDice1.html('<img src="./public/icons/' +res1+ '">');
-	resDice2.html('<img src="./public/icons/' +res2+ '">');
-	resDice3.html('<img src="./public/icons/' +res3+ '">');
+	resDice1.html('<img src="./public/icons/dice/' +res1+ '">');
+	resDice2.html('<img src="./public/icons/dice/' +res2+ '">');
+	resDice3.html('<img src="./public/icons/dice/' +res3+ '">');
 
-	let countSummon = 0;
-	let typeSummon = 0;
+	let countSummon = [0,0,0,0];
 	let temp;
 	if(temp = checkDiceResult(res1)){
 		if(temp > 0)
-			typeSummon = temp;
-		countSummon++;
+			countSummon[temp-1] ++;
 	}
 	if(temp = checkDiceResult(res2)){
 		if(temp > 0)
-			typeSummon = temp;
-		countSummon++;
+			countSummon[temp-1] ++;
 	}
 	if(temp = checkDiceResult(res3)){
 		if(temp > 0)
-			typeSummon = temp;
-		countSummon++;
+			countSummon[temp-1] ++;
 	}
 	
-
 	if(leftSummon > 0){
-		if(countSummon === 2){
-			isSummoning = typeSummon;
-			summonMonster();
-		}
-		
-		if(countSummon === 3){
-			isSummoning = typeSummon + 0.5;
-			summonMonster();
+		let i = 0;
+		while(i < 4){
+			if(countSummon[i] === 3){
+				isSummoning = i + 1.5;	// 3 same summon icons
+				summonMonster();
+				i=4;
+			}
+			else if(countSummon[i] === 2){
+				isSummoning = i + 1;	// 2 same summon icons
+				summonMonster();
+				i=4;
+			}
+			i++;
 		}
 	}
 }
 
 function summonMonster(){
+	// TODO
 	// camera zoom out
 	// orbitControls.enableZoom = false;
+
+	btnEndTurn.html('Skip summon');
+
 	const newDiePath = new THREE.Group();
 	let texture, baseColor;
 	if(playerTurn.color === 'Blue'){
@@ -805,42 +679,42 @@ function summonMonster(){
 function checkDiceResult(diceResult){
 
 	switch(diceResult){
-		case 'summon1-icon.png':
+		case 'lv1sum.png':
 			return 1;
-		case 'summon2-icon.png':
+		case 'lv2sum.png':
 			return 2;
-		case 'summon3-icon.png':
+		case 'lv3sum.png':
 			return 3;
-		case 'summon4-icon.png':
+		case 'lv4sum.png':
 			return 4;
-		case 'move-icon.png':
+		case 'lv1move.png' || 'lv3move':
 				increasePlayerMoves(1, playerTurn);
 			break;
-		case 'move2-icon.png':
+		case 'lv2movex2.png' || 'lv4movex2.png':
 				increasePlayerMoves(2, playerTurn);
 			break;
-		case 'attack-icon.png':
+		case 'lv3attack.png' || 'lv4attack.png':
 				increasePlayerAttacks(1, playerTurn);
 			break;
-		case 'attack2-icon.png':
+		case 'lv2attackx2.png':
 				increasePlayerAttacks(2, playerTurn);
 			break;
-		case 'shield-icon.png':
+		case 'lv4shield.png':
 				increasePlayerShields(1, playerTurn);
 			break;
-		case 'shield2-icon.png':
+		case 'lv1shieldx2.png':
 			increasePlayerShields(2, playerTurn);
 			break;
-		case 'magic-icon.png':
+		case 'lv4magic.png':
 			increasePlayerMagics(1, playerTurn);
 			break;
-		case 'magic2-icon.png':
+		case 'lv2magicx2.png':
 			increasePlayerMagics(2, playerTurn);
 			break;
-		case 'trap-icon.png':
+		case 'lv4trap.png':
 			increasePlayerTraps(1, playerTurn);
 			break;
-		case 'trap2-icon.png':
+		case 'lv3trapx2.png':
 			increasePlayerTraps(2, playerTurn);
 			break;
 	}
@@ -998,7 +872,8 @@ function onMouseUp(event) {
 				const intersects = raycaster.intersectObjects(ground.children, false);
 		
 				if(intersects.length >= 1 && selectedMonster1){
-					if(selectedMonster1.available === true){
+					console.log('if('+selectedMonster1.level+' >= '+Math.floor(isSummoning)+' && '+selectedMonster1.level+' <= '+Math.ceil(isSummoning));
+					if(selectedMonster1.available === true && selectedMonster1.level >= Math.floor(isSummoning) && selectedMonster1.level <= Math.ceil(isSummoning)){
 
 						let isLinked = false;
 						let overflow = false;	// detection of collisions or grid overflow
@@ -1166,8 +1041,8 @@ function onMouseUp(event) {
 	
 								object.traverse( function ( child ) {
 									if ( child.isMesh ) {
-										child.castShadow = true;
-										child.receiveShadow = true;
+										/*child.castShadow = true;
+										child.receiveShadow = true;*/
 									}
 								} );
 	
@@ -1197,6 +1072,7 @@ function onMouseUp(event) {
 							playerTurn.summonedMonsters.push(selectedMonster1);
 							selectedMonsterIcon = null;
 							monsterInfos1.css('display', 'none');
+							btnEndTurn.html('End Turn');
 							isSummoning = 0;
 							leftSummon --;
 							orbitControls.enableZoom = true;
@@ -1229,4 +1105,4 @@ function arrayRemove(arr, value) {
 }
 
 // Affichage framerate (debug)
-(function(){var script=document.createElement('script');script.onload=function(){var stats=new Stats();document.body.appendChild(stats.dom);requestAnimationFrame(function loop(){stats.update();requestAnimationFrame(loop)});};script.src='//mrdoob.github.io/stats.js/build/stats.min.js';document.head.appendChild(script);})()
+//(function(){var script=document.createElement('script');script.onload=function(){var stats=new Stats();document.body.appendChild(stats.dom);requestAnimationFrame(function loop(){stats.update();requestAnimationFrame(loop)});};script.src='//mrdoob.github.io/stats.js/build/stats.min.js';document.head.appendChild(script);})()

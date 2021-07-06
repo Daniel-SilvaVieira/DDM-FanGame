@@ -151,8 +151,8 @@ body{
 
 .monsterDesc{
     display: flex;
-    max-height: 120px;
-    min-height: 120px;
+    max-height: 118px;
+    min-height: 118px;
 }
 
 .effectCost{
