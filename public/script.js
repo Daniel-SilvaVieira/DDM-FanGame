@@ -7,7 +7,9 @@ import { ShaderPass } from './libs/three.js/examples/jsm/postprocessing/ShaderPa
 import { OutlinePass } from './libs/three.js/examples/jsm/postprocessing/OutlinePass.js';
 import { FXAAShader } from './libs/three.js/examples/jsm/shaders/FXAAShader.js';
 import {Vector2, Vector3} from "./libs/three.js/build/three.module.js";
-import { FBXLoader } from "./libs/three.js/examples/jsm/loaders/FBXLoader.js";
+//import { FBXLoader } from "./libs/three.js/examples/jsm/loaders/FBXLoader.js";
+import { GLTFLoader } from "./libs/three.js/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "./libs/three.js/examples/jsm/loaders/DRACOLoader.js";
 import { Player } from "./Player.js";
 import * as MONSTER from "./jsClass/MonsterModule.js";
 
@@ -22,7 +24,9 @@ let bluePathTiles = new THREE.Group();
 let redPathTiles = new THREE.Group();
 let movingPath = null;
 let selectedMonster1 = null,
-selectedMonster2 = null;
+selectedMonster2 = null,
+selectedMonsterIcon = null,
+selectedMonsterIconID = null;
 
 const player = new Player('Yugi Muto', true, 'Blue', 3, 0, 0, 0, 0, 0),
 opponent = new Player('Duke Devlin', false, 'Red', 3, 0, 0, 0, 0, 0);
@@ -30,15 +34,15 @@ opponent = new Player('Duke Devlin', false, 'Red', 3, 0, 0, 0, 0, 0);
 //let timeWizard = new Monster.TimeWizard(player);
 player.monsters = [
 	new MONSTER.TimeWizard(player), new MONSTER.TimeWizard(player), new MONSTER.TimeWizard(player),
-	new MONSTER.RyuRan(player), new MONSTER.RyuRan(player), new MONSTER.RyuRan(player),
+	new MONSTER.RyuRan(player), new MONSTER.RyuRan(player), new MONSTER.DarkMagicianGirl(player),
 	new MONSTER.CursedDragon(player), new MONSTER.CursedDragon(player), new MONSTER.SummonedSkull(player),
-	new MONSTER.SummonedSkull(player)
+	new MONSTER.BlueEyesWhiteDragon(player)
 ];
 opponent.monsters = [
 	new MONSTER.TimeWizard(opponent), new MONSTER.TimeWizard(opponent), new MONSTER.TimeWizard(opponent),
-	new MONSTER.RyuRan(opponent), new MONSTER.RyuRan(opponent), new MONSTER.RyuRan(opponent),
+	new MONSTER.RyuRan(opponent), new MONSTER.RyuRan(opponent), new MONSTER.DarkMagicianGirl(opponent),
 	new MONSTER.CursedDragon(opponent), new MONSTER.CursedDragon(opponent), new MONSTER.SummonedSkull(opponent),
-	new MONSTER.SummonedSkull(opponent)
+	new MONSTER.BlueEyesWhiteDragon(opponent)
 ];
 let playerTurn = player, leftDiceThrows = 2, leftSummon = 1, isSummoning = 0;
 let blueLinkedPositions = [new Vector3(5,0,18), new Vector3(7,0,18), new Vector3(6,0,17)];
@@ -77,6 +81,10 @@ const pathpatterns = [
 		[new Vector3(0,0,0), new Vector3(0,0,-1), new Vector3(1,0,-1), new Vector3(-1,0,0), new Vector3(-1,0,1), new Vector3(-2,0,1)]
 	]
 ];
+// Moving
+let startPosition = null,
+endPosition = null,
+entirePath = [];
 // Dices
 const DICE1 = ['lv1sum.png', 'lv1sum.png', 'lv1sum.png', 'lv1sum.png', 'lv1move.png', 'lv1shieldx2.png'];
 const DICE2 = ['lv2sum.png', 'lv2sum.png', 'lv2sum.png', 'lv2movex2.png', 'lv2attackx2.png', 'lv2magicx2.png'];
@@ -87,7 +95,6 @@ let redLastDice = [1,1,1];
 // postprocessing
 let composer, effectFXAA, outlinePass;
 let selectedObjects = [];
-let selectedMonsterIcon = null;
 // config
 
 // Loaders
@@ -95,8 +102,11 @@ const textureLoaderSky = new THREE.TextureLoader();
 textureLoaderSky.setPath( 'public/skybox/' );
 const textureLoaderOthers = new THREE.TextureLoader();
 textureLoaderOthers.setPath( 'public/textures/' );
-const model3DFBXLoader = new FBXLoader();
-model3DFBXLoader.setPath( 'public/3DModels/' );
+const model3DFBXLoader = new GLTFLoader();
+model3DFBXLoader.setPath('public/3DModels/');
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath( './libs/three.js/examples/js/libs/draco/' );
+model3DFBXLoader.setDRACOLoader( dracoLoader );
 // JQuery
 const btnAddDie1 = $('#addDie1'),
 btnAddDie2 = $('#addDie2'),
@@ -156,9 +166,9 @@ function init(){
 	orbitControls.target.set(6, 0, 9);
 	orbitControls.enablePan = true;
 	orbitControls.enableDamping = true;
-	orbitControls.maxPolarAngle = Math.PI / 2;
-	orbitControls.minDistance = 6;
-	orbitControls.maxDistance = 30;
+	//orbitControls.maxPolarAngle = Math.PI / 2;
+	//orbitControls.minDistance = 6;
+	//orbitControls.maxDistance = 30;
 	orbitControls.update();
 
 	// ----------------------------------------------
@@ -170,40 +180,6 @@ function init(){
 	scene.add(redSummonedMonsters);
 	
 
-	// Skybox
-	const DayFront = textureLoaderSky.load('Day-front.png');
-	const DayLeft = textureLoaderSky.load('Day-left.png');
-	const DayRight = textureLoaderSky.load('Day-right.png');
-	const DayBack = textureLoaderSky.load('Day-back.png');
-	const DayTop = textureLoaderSky.load('Day-top.png');
-	const DayBottom = textureLoaderSky.load('Day-bottom.png');
-	const skyboxMaterial = [
-		new THREE.MeshBasicMaterial({ map: DayRight, side: THREE.BackSide }),	// Right side
-		new THREE.MeshBasicMaterial({ map: DayLeft, side: THREE.BackSide }),	// Left side
-		new THREE.MeshBasicMaterial({ map: DayTop, side: THREE.BackSide }),	// Top side
-		new THREE.MeshBasicMaterial({ map: DayBottom, side: THREE.BackSide }),	// Bottom side
-		new THREE.MeshBasicMaterial({ map: DayFront, side: THREE.BackSide }),	// Front side
-		new THREE.MeshBasicMaterial({ map: DayBack, side: THREE.BackSide })	// Back side
-	];
-	const skybox = new THREE.Mesh(new THREE.BoxGeometry(1000, 1000, 1000), skyboxMaterial);
-	scene.add(skybox);
-
-	// Lights
-	const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.8);
-	scene.add(ambientLight);
-	const pointLight = new THREE.PointLight(0xFFFFFF, 0.3, 1000);
-	pointLight.position.set(6, 5, 9);
-	/*pointLight.castShadow = true;
-	pointLight.shadow.mapSize.width = 1024;
-	pointLight.shadow.mapSize.height = 1024;*/
-
-	const d = 10;
-	pointLight.shadow.camera.left = - d;
-	pointLight.shadow.camera.right = d;
-	pointLight.shadow.camera.top = d;
-	pointLight.shadow.camera.bottom = - d;
-	pointLight.shadow.camera.far = 1000;
-	scene.add(pointLight);
 
 	refreshMonsterList();
 }
@@ -262,6 +238,42 @@ function buildTerrain(){
 	/*redPlayerBox.receiveShadow = true;
 	redPlayerBox.castShadow = true;*/
 	scene.add(redPlayerBox);
+
+	
+	// Skybox
+	const DayFront = textureLoaderSky.load('Day-front.png');
+	const DayLeft = textureLoaderSky.load('Day-left.png');
+	const DayRight = textureLoaderSky.load('Day-right.png');
+	const DayBack = textureLoaderSky.load('Day-back.png');
+	const DayTop = textureLoaderSky.load('Day-top.png');
+	const DayBottom = textureLoaderSky.load('Day-bottom.png');
+	const skyboxMaterial = [
+		new THREE.MeshBasicMaterial({ map: DayRight, side: THREE.BackSide }),	// Right side
+		new THREE.MeshBasicMaterial({ map: DayLeft, side: THREE.BackSide }),	// Left side
+		new THREE.MeshBasicMaterial({ map: DayTop, side: THREE.BackSide }),	// Top side
+		new THREE.MeshBasicMaterial({ map: DayBottom, side: THREE.BackSide }),	// Bottom side
+		new THREE.MeshBasicMaterial({ map: DayFront, side: THREE.BackSide }),	// Front side
+		new THREE.MeshBasicMaterial({ map: DayBack, side: THREE.BackSide })	// Back side
+	];
+	const skybox = new THREE.Mesh(new THREE.BoxGeometry(1000, 1000, 1000), skyboxMaterial);
+	scene.add(skybox);
+
+	// Lights
+	const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.8);
+	scene.add(ambientLight);
+	const pointLight = new THREE.PointLight(0xFFFFFF, 0.3, 1000);
+	pointLight.position.set(6, 5, 9);
+	/*pointLight.castShadow = true;
+	pointLight.shadow.mapSize.width = 1024;
+	pointLight.shadow.mapSize.height = 1024;*/
+
+	const d = 10;
+	pointLight.shadow.camera.left = - d;
+	pointLight.shadow.camera.right = d;
+	pointLight.shadow.camera.top = d;
+	pointLight.shadow.camera.bottom = - d;
+	pointLight.shadow.camera.far = 1000;
+	scene.add(pointLight);
 }
 
 function getRandomInt(max) {
@@ -270,19 +282,18 @@ function getRandomInt(max) {
 
 function refreshMonsterList(){
 	monstersSelectionField.html('');
+	let allIcons = '';
 	playerTurn.monsters.forEach(function(monster){
 		let newIcon;
 
 		if(monster.available)
-			newIcon = '<div class="monsterIcon" data-level="' +monster.level+ '" data-id="' +monster.id+ '"><img src="./public/icons/monsters/' +monster.iconFilename+ '" /></div>';
+			allIcons += '<div class="monsterIcon" data-level="' +monster.level+ '" data-id="' +monster.id+ '"><img src="./public/icons/monsters/' +monster.iconFilename+ '" /></div>';
 		else
-			newIcon = '<div class="monsterIcon disabledMonsterIcon" data-level="' +monster.level+ '" data-id="' +monster.id+ '"><img src="./public/icons/monsters/' +monster.iconFilename+ '" /></div>';
-
-		monstersSelectionField.html(monstersSelectionField.html() + newIcon);
-
-		if(selectedMonsterIcon)
-			$('.monsterIcon[data-id="'+selectedMonsterIcon+'"]').addClass('selectedMonsterIcon');
+		allIcons += '<div class="monsterIcon disabledMonsterIcon" data-level="' +monster.level+ '" data-id="' +monster.id+ '"><img src="./public/icons/monsters/' +monster.iconFilename+ '" /></div>';
 	});
+	monstersSelectionField.html(allIcons);
+	if(selectedMonsterIconID)
+		$('.monsterIcon[data-id="'+selectedMonsterIconID+'"]').addClass('selectedMonsterIcon');
 }
 
 monstersSelectionField.on('click', '.monsterIcon', function(){
@@ -306,12 +317,13 @@ monstersSelectionField.on('click', '.monsterIcon', function(){
 	}
 
 	if(found){
-		selectedMonsterIcon = $(this).attr('data-id');
-		selectedMonster1 = associatedMonster;
+		selectedMonsterIconID = $(this).attr('data-id');
+		selectedMonsterIcon = associatedMonster;
 		refreshMonsterList();
+		selectedMonster1 = null;
 	
 		// show monster infos
-		showMonsterInfos(selectedMonster1);
+		showMonsterInfos(selectedMonsterIcon);
 	}
 });
 
@@ -333,7 +345,7 @@ function showMonsterInfos(selectedMonster){
 }
 
 function switchTurn(){
-	if(isSummoning === 0){
+	if(isSummoning === 0 && leftDiceThrows === 0){
 		leftDiceThrows = 2;
 		leftSummon = 1;
 		btnAddDie1.attr("disabled", false);
@@ -370,12 +382,15 @@ function switchTurn(){
 			lastPathRotation = 1;
 
 		selectedMonsterIcon = null;
+		selectedMonsterIconID = null;
 		selectedMonster1 = null;
 		selectedMonster2 = null;
 		refreshMonsterList();
 	}else{
-		movingPath.parent.remove(movingPath);
-		movingPath = null;
+		if(movingPath){
+			movingPath.parent.remove(movingPath);
+			movingPath = null;
+		}
 		isSummoning = 0;
 		btnEndTurn.html('End Turn');
 	}
@@ -788,7 +803,7 @@ document.addEventListener( 'pointerup', onMouseUp);
 window.addEventListener( 'wheel', onWheel);
 window.addEventListener( 'keydown', onKeyDown );
 
-$('#endTurn').on('click', function(){
+btnEndTurn.on('click', function(){
 	switchTurn();
 });
 
@@ -871,9 +886,9 @@ function onMouseUp(event) {
 				raycaster.setFromCamera(mouse, camera);
 				const intersects = raycaster.intersectObjects(ground.children, false);
 		
-				if(intersects.length >= 1 && selectedMonster1){
-					console.log('if('+selectedMonster1.level+' >= '+Math.floor(isSummoning)+' && '+selectedMonster1.level+' <= '+Math.ceil(isSummoning));
-					if(selectedMonster1.available === true && selectedMonster1.level >= Math.floor(isSummoning) && selectedMonster1.level <= Math.ceil(isSummoning)){
+				if(intersects.length >= 1 && selectedMonsterIcon){
+					console.log('if('+selectedMonsterIcon.level+' >= '+Math.floor(isSummoning)+' && '+selectedMonsterIcon.level+' <= '+Math.ceil(isSummoning));
+					if(selectedMonsterIcon.available === true && selectedMonsterIcon.level >= Math.floor(isSummoning) && selectedMonsterIcon.level <= Math.ceil(isSummoning)){
 
 						let isLinked = false;
 						let overflow = false;	// detection of collisions or grid overflow
@@ -1003,7 +1018,7 @@ function onMouseUp(event) {
 									path.children.forEach(function(tile){
 										let tilePos = new Vector3();
 										tile.getWorldPosition(tilePos);
-										tilePos = new Vector3(Math.round(tilePos.x), 0, Math.round(tilePos.z));
+										tilePos = new Vector3(tilePos.x, 0, tilePos.z);
 	
 										// add its position to lockedTilePosition array
 										lockedTilePosition.push(tilePos);
@@ -1035,42 +1050,44 @@ function onMouseUp(event) {
 								});
 								redLinkedPositions = freeLinkTilePosition;
 							}
+
+							console.log(selectedMonsterIcon);
 	
 							// Load monster model
-							model3DFBXLoader.load( selectedMonster1.modelFilename, function ( object ) {
+							model3DFBXLoader.load( selectedMonsterIcon.modelFilename, function ( object ) {
 	
-								object.traverse( function ( child ) {
+								/*object.traverse( function ( child ) {
 									if ( child.isMesh ) {
-										/*child.castShadow = true;
-										child.receiveShadow = true;*/
 									}
-								} );
+								} );*/
 	
-								object.position.x = movingPath.position.x;
-								object.position.y = movingPath.position.y;
-								object.position.z = movingPath.position.z;
-								object.scale.x = selectedMonster1.scale;
-								object.scale.y = selectedMonster1.scale;
-								object.scale.z = selectedMonster1.scale;
+								object.scene.position.x = movingPath.position.x;
+								object.scene.position.y = movingPath.position.y;
+								object.scene.position.z = movingPath.position.z;
+								/*object.scale.x = selectedMonsterIcon.scale;
+								object.scale.y = selectedMonsterIcon.scale;
+								object.scale.z = selectedMonsterIcon.scale;*/
 
 								// Monster stats
-								object.userData.class = selectedMonster1;
+								object.scene.userData.class = selectedMonsterIcon;
 	
 								if(playerTurn.color == 'Blue'){
-									blueSummonedMonsters.add(object);
-									object.rotation.y += THREE.Math.degToRad(180);
+									blueSummonedMonsters.add(object.scene);
+									object.scene.rotation.y += THREE.Math.degToRad(180);
 								}
 								else{
-									redSummonedMonsters.add(object);
+									redSummonedMonsters.add(object.scene);
 								}
+								selectedMonsterIcon = null;
+								selectedMonsterIconID = null;
+								movingPath = null;
 	
 							}, undefined, function ( error ) {
 								console.error( error );
 							} );
 	
-							selectedMonster1.available = false;
-							playerTurn.summonedMonsters.push(selectedMonster1);
-							selectedMonsterIcon = null;
+							selectedMonsterIcon.available = false;
+							playerTurn.summonedMonsters.push(selectedMonsterIcon);
 							monsterInfos1.css('display', 'none');
 							btnEndTurn.html('End Turn');
 							isSummoning = 0;
@@ -1083,12 +1100,49 @@ function onMouseUp(event) {
 			}else{
 				const sceneMonsters = blueSummonedMonsters.children.concat(redSummonedMonsters.children);
 				raycaster.setFromCamera(mouse, camera);
-				const intersects = raycaster.intersectObjects(sceneMonsters, true);
+				const intersectsMonsters = raycaster.intersectObjects(sceneMonsters, true);
+
+				const allTiles = bluePathTiles.children.concat(redPathTiles.children);
+				raycaster.setFromCamera(mouse, camera);
+				const intersectsTile = raycaster.intersectObjects(allTiles, true);
 		
-				if(intersects.length >= 1){
+				if(intersectsMonsters.length >= 1){
 					// show monster infos
-					showMonsterInfos(intersects[0].object.parent.userData.class);
+					if(intersectsMonsters[0].object.parent.userData.class){
+						if(intersectsMonsters[0].object.parent.userData.class.owner.color === playerTurn.color)
+							selectedMonster1 = intersectsMonsters[0].object.parent;
+						else
+							selectedMonster2 = intersectsMonsters[0].object.parent;
+						showMonsterInfos(intersectsMonsters[0].object.parent.userData.class);
+					}else{
+						if(intersectsMonsters[0].object.parent.parent.userData.class.owner.color === playerTurn.color)
+							selectedMonster1 = intersectsMonsters[0].object.parent.parent;
+						else
+							selectedMonster2 = intersectsMonsters[0].object.parent.parent;
+						showMonsterInfos(intersectsMonsters[0].object.parent.parent.userData.class);
+					}
+				}else if(intersectsTile.length >= 1){
+					console.log('raycast has touched something!');
+					if(selectedMonster1){
+						console.log('a monster is selected');
+						if(!selectedMonster1.available && !selectedMonster1.dead && leftDiceThrows === 0){	 //move selected monster
+							// MOVING
+							console.log('is moving !');
+							startPosition = selectedMonster1.position;
+							//selectedMonster1.getWorldPosition(startPosition);
+							endPosition = new Vector3();
+							intersectsTile[0].object.getWorldPosition(endPosition);
+
+
+							
+							selectedMonster1.position.x = endPosition.x;
+							selectedMonster1.position.y = endPosition.y;
+							selectedMonster1.position.z = endPosition.z;
+
+						}
+					}
 				}
+				
 			}
 		}
 	}

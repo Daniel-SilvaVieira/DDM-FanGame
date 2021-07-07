@@ -19,6 +19,8 @@ export class Monster {
         this.atk = atk;
         this.def = def;
         this.available = true;
+        this.hasAttacked = false;
+        this.dead = false;
 
         Monster.lastID++
     }
