@@ -18,10 +18,12 @@ let camera, scene, renderer, orbitControls, mouse, raycaster;
 let realeaseTimer = null;
 let blueSummonedMonsters = new THREE.Group();
 let redSummonedMonsters = new THREE.Group();
+let allSceneMonsters = [];
 let ground = new THREE.Group();
 let lastIdTile = 0;
-let bluePathTiles = new THREE.Group();
-let redPathTiles = new THREE.Group();
+let bluePathTiles = new THREE.Group(),
+redPathTiles = new THREE.Group(),
+allTiles = [];
 let movingPath = null;
 let selectedMonster1 = null,
 selectedMonster2 = null,
@@ -82,9 +84,7 @@ const pathpatterns = [
 	]
 ];
 // Moving
-let startPosition = null,
-endPosition = null,
-entirePath = [];
+let entireMovingPath = []; // path followed by the moving monster
 // Dices
 const DICE1 = ['lv1sum.png', 'lv1sum.png', 'lv1sum.png', 'lv1sum.png', 'lv1move.png', 'lv1shieldx2.png'];
 const DICE2 = ['lv2sum.png', 'lv2sum.png', 'lv2sum.png', 'lv2movex2.png', 'lv2attackx2.png', 'lv2magicx2.png'];
@@ -338,7 +338,7 @@ function showMonsterInfos(selectedMonster){
 	selector.find('.monsterName').html(selectedMonster.name);
 	selector.find('.monsterlevel').html('lv. '+selectedMonster.level);
 	selector.find('.monsterSpeMove').html(selectedMonster.movement);
-	selector.find('.effectCost').html(selectedMonster.effectCost);
+	selector.find('.effectCost').html('<button>' +selectedMonster.effectCost+ '</button>');
 	selector.find('.effectDesc').html(selectedMonster.effectDesc);
 	selector.find('.monsterType').html(selectedMonster.type);
 	selector.find('.monsterStats').html('hp: ' +selectedMonster.leftHp+ ' / atk: ' +selectedMonster.atk+ ' / def : ' +selectedMonster.def);
@@ -404,28 +404,88 @@ btnThrowDice.on('click', function(){
 			btnAddDie2.attr("disabled", true);
 			btnAddDie3.attr("disabled", true);
 			btnAddDie4.attr("disabled", true);
-			if(leftDiceThrows === 0)
-				btnThrowDice.attr("disabled", true);
-	
-			let res = [0,0,0];
+			btnThrowDice.attr("disabled", true);
+
+			const resImg = [resDice1, resDice2, resDice3];
+
+			// rolling dice animation
 			for(let i=0;i<3;i++){
 				switch(blueLastDice[i]){
 					case 1:
-						res[i] = DICE1[getRandomInt(6)];
+						resImg[i].html('<img src="./public/icons/dice/rollDice1anim.gif">');
 						break;
 					case 2:
-						res[i] = DICE2[getRandomInt(6)];
+						resImg[i].html('<img src="./public/icons/dice/rollDice2anim.gif">');
 						break;
 					case 3:
-						res[i] = DICE3[getRandomInt(6)];
+						resImg[i].html('<img src="./public/icons/dice/rollDice3anim.gif">');
 						break;
 					case 4:
-						res[i] = DICE4[getRandomInt(6)];
+						resImg[i].html('<img src="./public/icons/dice/rollDice4anim.gif">');
 						break;
 				}
 			}
-		
-			handleDicesResults(res[0], res[1], res[2]);
+	
+			let res = [0,0,0];
+			setTimeout(function(){
+				switch(blueLastDice[0]){
+					case 1:
+						res[0] = DICE1[getRandomInt(6)];
+						break;
+					case 2:
+						res[0] = DICE2[getRandomInt(6)];
+						break;
+					case 3:
+						res[0] = DICE3[getRandomInt(6)];
+						break;
+					case 4:
+						res[0] = DICE4[getRandomInt(6)];
+						break;
+				}
+				resDice1.html('<img src="./public/icons/dice/' +res[0]+ '">');
+			}, 400);
+			setTimeout(function(){
+				switch(blueLastDice[1]){
+					case 1:
+						res[1] = DICE1[getRandomInt(6)];
+						break;
+					case 2:
+						res[1] = DICE2[getRandomInt(6)];
+						break;
+					case 3:
+						res[1] = DICE3[getRandomInt(6)];
+						break;
+					case 4:
+						res[1] = DICE4[getRandomInt(6)];
+						break;
+				}
+				resDice2.html('<img src="./public/icons/dice/' +res[1]+ '">');
+			}, 800);
+			setTimeout(function(){
+				switch(blueLastDice[2]){
+					case 1:
+						res[2] = DICE1[getRandomInt(6)];
+						break;
+					case 2:
+						res[2] = DICE2[getRandomInt(6)];
+						break;
+					case 3:
+						res[2] = DICE3[getRandomInt(6)];
+						break;
+					case 4:
+						res[2] = DICE4[getRandomInt(6)];
+						break;
+				}
+				resDice3.html('<img src="./public/icons/dice/' +res[2]+ '">');
+			}, 1200);
+
+
+			setTimeout(function(){
+				handleDicesResults(res[0], res[1], res[2]);
+				
+				if(leftDiceThrows > 0)
+					btnThrowDice.attr("disabled", false);
+			}, 1300);
 		}
 	}else{
 		if(leftDiceThrows > 0 && redLastDice.length === 3 && isSummoning === 0){
@@ -437,25 +497,84 @@ btnThrowDice.on('click', function(){
 			if(leftDiceThrows === 0)
 				btnThrowDice.attr("disabled", true);
 	
-			let res = [0,0,0];
-			for(let i=0;i<3;i++){
-				switch(redLastDice[i]){
-					case 1:
-						res[i] = DICE1[getRandomInt(6)];
-						break;
-					case 2:
-						res[i] = DICE2[getRandomInt(6)];
-						break;
-					case 3:
-						res[i] = DICE3[getRandomInt(6)];
-						break;
-					case 4:
-						res[i] = DICE4[getRandomInt(6)];
-						break;
+			
+				const resImg = [resDice1, resDice2, resDice3];
+
+				// rolling dice animation
+				for(let i=0;i<3;i++){
+					switch(redLastDice[i]){
+						case 1:
+							resImg[i].html('<img src="./public/icons/dice/rollDice1anim.gif">');
+							break;
+						case 2:
+							resImg[i].html('<img src="./public/icons/dice/rollDice2anim.gif">');
+							break;
+						case 3:
+							resImg[i].html('<img src="./public/icons/dice/rollDice3anim.gif">');
+							break;
+						case 4:
+							resImg[i].html('<img src="./public/icons/dice/rollDice4anim.gif">');
+							break;
+					}
 				}
-			}
 		
-			handleDicesResults(res[0], res[1], res[2]);
+				let res = [0,0,0];
+				setTimeout(function(){
+					switch(redLastDice[0]){
+						case 1:
+							res[0] = DICE1[getRandomInt(6)];
+							break;
+						case 2:
+							res[0] = DICE2[getRandomInt(6)];
+							break;
+						case 3:
+							res[0] = DICE3[getRandomInt(6)];
+							break;
+						case 4:
+							res[0] = DICE4[getRandomInt(6)];
+							break;
+					}
+					resDice1.html('<img src="./public/icons/dice/' +res[0]+ '">');
+				}, 400);
+				setTimeout(function(){
+					switch(redLastDice[1]){
+						case 1:
+							res[1] = DICE1[getRandomInt(6)];
+							break;
+						case 2:
+							res[1] = DICE2[getRandomInt(6)];
+							break;
+						case 3:
+							res[1] = DICE3[getRandomInt(6)];
+							break;
+						case 4:
+							res[1] = DICE4[getRandomInt(6)];
+							break;
+					}
+					resDice2.html('<img src="./public/icons/dice/' +res[1]+ '">');
+				}, 800);
+				setTimeout(function(){
+					switch(redLastDice[2]){
+						case 1:
+							res[2] = DICE1[getRandomInt(6)];
+							break;
+						case 2:
+							res[2] = DICE2[getRandomInt(6)];
+							break;
+						case 3:
+							res[2] = DICE3[getRandomInt(6)];
+							break;
+						case 4:
+							res[2] = DICE4[getRandomInt(6)];
+							break;
+					}
+					resDice3.html('<img src="./public/icons/dice/' +res[2]+ '">');
+				}, 1200);
+	
+	
+				setTimeout(function(){
+					handleDicesResults(res[0], res[1], res[2]);
+				}, 1300);
 		}
 	}
 });
@@ -598,9 +717,9 @@ btnAddDie4.on('click', function(){
 });
 
 function handleDicesResults(res1, res2, res3){
-	resDice1.html('<img src="./public/icons/dice/' +res1+ '">');
+	/*resDice1.html('<img src="./public/icons/dice/' +res1+ '">');
 	resDice2.html('<img src="./public/icons/dice/' +res2+ '">');
-	resDice3.html('<img src="./public/icons/dice/' +res3+ '">');
+	resDice3.html('<img src="./public/icons/dice/' +res3+ '">');*/
 
 	let countSummon = [0,0,0,0];
 	let temp;
@@ -664,12 +783,54 @@ function summonMonster(){
 
 	// creating tiles
 	let tiles = [];
-	tiles.push(new THREE.Mesh(tileGeometry, tileMaterial));
-	tiles.push(new THREE.Mesh(tileGeometry, tileMaterial));
-	tiles.push(new THREE.Mesh(tileGeometry, tileMaterial));
-	tiles.push(new THREE.Mesh(tileGeometry, tileMaterial));
-	tiles.push(new THREE.Mesh(tileGeometry, tileMaterial));
-	tiles.push(new THREE.Mesh(tileGeometry, tileMaterial));
+	tiles.push(new THREE.Mesh(tileGeometry, [
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Right side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Left side
+		new THREE.MeshBasicMaterial({ map: texture }),	// Top side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Bottom side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Front side
+		new THREE.MeshBasicMaterial({ color : baseColor })	// Back side
+	]));
+	tiles.push(new THREE.Mesh(tileGeometry, [
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Right side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Left side
+		new THREE.MeshBasicMaterial({ map: texture }),	// Top side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Bottom side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Front side
+		new THREE.MeshBasicMaterial({ color : baseColor })	// Back side
+	]));
+	tiles.push(new THREE.Mesh(tileGeometry, [
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Right side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Left side
+		new THREE.MeshBasicMaterial({ map: texture }),	// Top side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Bottom side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Front side
+		new THREE.MeshBasicMaterial({ color : baseColor })	// Back side
+	]));
+	tiles.push(new THREE.Mesh(tileGeometry, [
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Right side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Left side
+		new THREE.MeshBasicMaterial({ map: texture }),	// Top side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Bottom side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Front side
+		new THREE.MeshBasicMaterial({ color : baseColor })	// Back side
+	]));
+	tiles.push(new THREE.Mesh(tileGeometry, [
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Right side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Left side
+		new THREE.MeshBasicMaterial({ map: texture }),	// Top side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Bottom side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Front side
+		new THREE.MeshBasicMaterial({ color : baseColor })	// Back side
+	]));
+	tiles.push(new THREE.Mesh(tileGeometry, [
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Right side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Left side
+		new THREE.MeshBasicMaterial({ map: texture }),	// Top side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Bottom side
+		new THREE.MeshBasicMaterial({ color : baseColor }),	// Front side
+		new THREE.MeshBasicMaterial({ color : baseColor })	// Back side
+	]));
 	let i = 0;
 	tiles.forEach(function(tile){
 		newDiePath.add(tile);
@@ -678,6 +839,14 @@ function summonMonster(){
 		tile.position.x = pathpatterns[lastPathPattern][lastPathRotation][i].x;
 		tile.position.y = pathpatterns[lastPathPattern][lastPathRotation][i].y;
 		tile.position.z = pathpatterns[lastPathPattern][lastPathRotation][i].z;
+		tile.userData.pointsToIt = null;
+		tile.userData.movementsNeeded = null;
+
+		if(tile.position.equals(new Vector3(0,0,0))){
+			tile.userData.occupied = true;
+		}else{
+			tile.userData.occupied = false;
+		}
 		i++;
 	});
 	// making path
@@ -702,20 +871,29 @@ function checkDiceResult(diceResult){
 			return 3;
 		case 'lv4sum.png':
 			return 4;
-		case 'lv1move.png' || 'lv3move':
-				increasePlayerMoves(1, playerTurn);
+		case 'lv1move.png':
+			increasePlayerMoves(1, playerTurn);
 			break;
-		case 'lv2movex2.png' || 'lv4movex2.png':
-				increasePlayerMoves(2, playerTurn);
+		case 'lv3move.png':
+			increasePlayerMoves(1, playerTurn);
 			break;
-		case 'lv3attack.png' || 'lv4attack.png':
-				increasePlayerAttacks(1, playerTurn);
+		case 'lv2movex2.png':
+			increasePlayerMoves(2, playerTurn);
+			break;
+		case 'lv4movex2.png':
+			increasePlayerMoves(2, playerTurn);
+			break;
+		case 'lv3attack.png':
+			increasePlayerAttacks(1, playerTurn);
+			break;
+		case 'lv4attack.png':
+			increasePlayerAttacks(1, playerTurn);
 			break;
 		case 'lv2attackx2.png':
-				increasePlayerAttacks(2, playerTurn);
+			increasePlayerAttacks(2, playerTurn);
 			break;
 		case 'lv4shield.png':
-				increasePlayerShields(1, playerTurn);
+			increasePlayerShields(1, playerTurn);
 			break;
 		case 'lv1shieldx2.png':
 			increasePlayerShields(2, playerTurn);
@@ -887,7 +1065,6 @@ function onMouseUp(event) {
 				const intersects = raycaster.intersectObjects(ground.children, false);
 		
 				if(intersects.length >= 1 && selectedMonsterIcon){
-					console.log('if('+selectedMonsterIcon.level+' >= '+Math.floor(isSummoning)+' && '+selectedMonsterIcon.level+' <= '+Math.ceil(isSummoning));
 					if(selectedMonsterIcon.available === true && selectedMonsterIcon.level >= Math.floor(isSummoning) && selectedMonsterIcon.level <= Math.ceil(isSummoning)){
 
 						let isLinked = false;
@@ -916,12 +1093,10 @@ function onMouseUp(event) {
 	
 							if(movingTilePos.x < 0 || movingTilePos.x > 12 || movingTilePos.z < 0 || movingTilePos.z > 18){
 								overflow = true;
-								console.log('Path go out of the grid...');
 							}
 							//check collision with player base
 							if((movingTilePos.x === 6 && movingTilePos.z === 0) || (movingTilePos.x === 6 && movingTilePos.z === 18)){
 								overflow = true;
-								console.log('Hit player base ...');
 							}
 							//check collision with other paths
 							if(!overflow){
@@ -934,7 +1109,6 @@ function onMouseUp(event) {
 											
 											if(tilePos.equals(movingTilePos)){
 												overflow = true;
-												console.log('Hit blue path...');
 											}
 										}
 									});
@@ -948,7 +1122,6 @@ function onMouseUp(event) {
 											
 											if(tilePos.equals(movingTilePos)){
 												overflow = true;
-												console.log('Hit red path...');
 											}
 										}
 									});
@@ -958,13 +1131,11 @@ function onMouseUp(event) {
 							validCellsArray.forEach(function(cell){
 								if(cell.equals(movingTilePos)){
 									isLinked = true;
-									console.log('Is in a linked position !');
 								}
 							});
 						});
 						
 						if(isLinked && !overflow){
-							console.log('summoned !');
 							if(playerTurn.color === 'Blue'){
 								// update blueLinkedPositions
 								freeLinkTilePosition.push(new Vector3(5,0,18));
@@ -1050,23 +1221,30 @@ function onMouseUp(event) {
 								});
 								redLinkedPositions = freeLinkTilePosition;
 							}
-
-							console.log(selectedMonsterIcon);
 	
 							// Load monster model
 							model3DFBXLoader.load( selectedMonsterIcon.modelFilename, function ( object ) {
-	
-								/*object.traverse( function ( child ) {
-									if ( child.isMesh ) {
+
+								/*gltf.scene.traverse(function (child) {
+									if ((<THREE.Mesh>child).isMesh) {
+										let m = <THREE.Mesh>child
+										m.receiveShadow = true
+										m.castShadow = true;
+										//(<THREE.MeshStandardMaterial>m.material).flatShading = true
+										//sceneMeshes.push(m)
 									}
-								} );*/
+									if ((<THREE.Light>child).isLight) {
+										let l = <THREE.Light>child
+										l.castShadow = true
+										l.shadow.bias = -.003
+										l.shadow.mapSize.width = 2048
+										l.shadow.mapSize.height = 2048
+									}
+								})*/
 	
 								object.scene.position.x = movingPath.position.x;
 								object.scene.position.y = movingPath.position.y;
 								object.scene.position.z = movingPath.position.z;
-								/*object.scale.x = selectedMonsterIcon.scale;
-								object.scale.y = selectedMonsterIcon.scale;
-								object.scale.z = selectedMonsterIcon.scale;*/
 
 								// Monster stats
 								object.scene.userData.class = selectedMonsterIcon;
@@ -1078,16 +1256,21 @@ function onMouseUp(event) {
 								else{
 									redSummonedMonsters.add(object.scene);
 								}
+								selectedMonsterIcon.available = false;
+								playerTurn.summonedMonsters.push(selectedMonsterIcon);
+								allSceneMonsters.push(object.scene);
 								selectedMonsterIcon = null;
 								selectedMonsterIconID = null;
+								refreshMonsterList();
+								movingPath.children.forEach(function(tile){
+									allTiles.push(tile);
+								});
 								movingPath = null;
 	
 							}, undefined, function ( error ) {
 								console.error( error );
 							} );
 	
-							selectedMonsterIcon.available = false;
-							playerTurn.summonedMonsters.push(selectedMonsterIcon);
 							monsterInfos1.css('display', 'none');
 							btnEndTurn.html('End Turn');
 							isSummoning = 0;
@@ -1097,47 +1280,55 @@ function onMouseUp(event) {
 						}
 					}
 				}
-			}else{
-				const sceneMonsters = blueSummonedMonsters.children.concat(redSummonedMonsters.children);
+			}else{ // select monster
 				raycaster.setFromCamera(mouse, camera);
-				const intersectsMonsters = raycaster.intersectObjects(sceneMonsters, true);
+				const intersectsMonsters = raycaster.intersectObjects(allSceneMonsters, true);
 
-				const allTiles = bluePathTiles.children.concat(redPathTiles.children);
 				raycaster.setFromCamera(mouse, camera);
 				const intersectsTile = raycaster.intersectObjects(allTiles, true);
 		
 				if(intersectsMonsters.length >= 1){
 					// show monster infos
+					let aMonster;
 					if(intersectsMonsters[0].object.parent.userData.class){
-						if(intersectsMonsters[0].object.parent.userData.class.owner.color === playerTurn.color)
-							selectedMonster1 = intersectsMonsters[0].object.parent;
-						else
-							selectedMonster2 = intersectsMonsters[0].object.parent;
-						showMonsterInfos(intersectsMonsters[0].object.parent.userData.class);
+						aMonster = intersectsMonsters[0].object.parent;
 					}else{
-						if(intersectsMonsters[0].object.parent.parent.userData.class.owner.color === playerTurn.color)
-							selectedMonster1 = intersectsMonsters[0].object.parent.parent;
-						else
-							selectedMonster2 = intersectsMonsters[0].object.parent.parent;
-						showMonsterInfos(intersectsMonsters[0].object.parent.parent.userData.class);
+						aMonster = intersectsMonsters[0].object.parent.parent;
 					}
+					
+					if(aMonster.userData.class.owner.color === playerTurn.color){
+						selectedMonster1 = aMonster;
+						
+						// PATH FINDING HERE
+						let startPosition = selectedMonster1.position;
+						let isFlying = false;
+						if(selectedMonster1.movement === 'Flying')
+							isFlying = true;
+						if((!isFlying && playerTurn.moves >= 1) || (isFlying && playerTurn.moves >= 2)){
+							console.log('start seeking around');
+							seekAroundTo(startPosition, startPosition, [startPosition], isFlying);
+						}
+					}
+					else
+						selectedMonster2 = aMonster;
+					showMonsterInfos(aMonster.userData.class);
+
+
 				}else if(intersectsTile.length >= 1){
-					console.log('raycast has touched something!');
 					if(selectedMonster1){
-						console.log('a monster is selected');
 						if(!selectedMonster1.available && !selectedMonster1.dead && leftDiceThrows === 0){	 //move selected monster
 							// MOVING
-							console.log('is moving !');
-							startPosition = selectedMonster1.position;
-							//selectedMonster1.getWorldPosition(startPosition);
-							endPosition = new Vector3();
+							let startPosition = selectedMonster1.position;
+							let endPosition = new Vector3();
 							intersectsTile[0].object.getWorldPosition(endPosition);
 
+							if(selectedMonster1){
 
+							}
 							
-							selectedMonster1.position.x = endPosition.x;
+							/*selectedMonster1.position.x = endPosition.x;
 							selectedMonster1.position.y = endPosition.y;
-							selectedMonster1.position.z = endPosition.z;
+							selectedMonster1.position.z = endPosition.z;*/
 
 						}
 					}
@@ -1147,6 +1338,103 @@ function onMouseUp(event) {
 		}
 	}
 }
+
+
+function seekAroundTo(currentPosition, startPosition, pathPointsArray = [], isFlying, nbMoves = 0){
+	nbMoves ++;
+	if(isFlying)
+		nbMoves ++;
+	let xMoves = currentPosition.x - startPosition.x;
+	let zMoves = currentPosition.z - startPosition.z;
+	let ray;
+	/*let newPosition = new Vector3();
+	intersectsTile[0].object.getWorldPosition(newPosition);*/
+	pathPointsArray.push(currentPosition);
+
+	let positionsToTest = [];
+
+	if(xMoves === 0 && zMoves === 0){
+		positionsToTest.push(new Vector3(currentPosition.x +1, 0.3, currentPosition.z));
+		positionsToTest.push(new Vector3(currentPosition.x -1, 0.3, currentPosition.z));
+		positionsToTest.push(new Vector3(currentPosition.x, 0.3, currentPosition.z +1));
+		positionsToTest.push(new Vector3(currentPosition.x, 0.3, currentPosition.z -1));
+	}/*else if(xMoves > 0){
+		positionsToTest.push(new Vector3(currentPosition.x + 1, 0.3, currentPosition.z));
+		positionsToTest.push(new Vector3(currentPosition.x - Math.sign(xMoves), 0.3, currentPosition.z));
+	}else if(zMoves < xMoves){
+		positionsToTest.push(new Vector3(currentPosition.x, 0.3, currentPosition.z + Math.sign(xMoves)));
+	}else{
+
+	}*/
+
+	positionsToTest.forEach(function(newPosition){
+		ray = new THREE.Raycaster(
+			newPosition,
+			new Vector3(0,-1,0)
+		);
+		//console.log(newPosition);
+	
+		const intersects = ray.intersectObjects( allTiles, true );
+		if(intersects.length > 0){
+			const aTile = intersects[0].object;
+			console.log(aTile);
+			if(!aTile.userData.occupied && (aTile.userData.movementsNeeded > nbMoves || aTile.userData.movementsNeeded == null)){
+				aTile.material.forEach(function(face){
+					face.transparent = true;
+					face.opacity = 0.5;
+				});
+				aTile.userData.movementsNeeded = nbMoves;
+				aTile.userData.pointsToIt = pathPointsArray;
+	
+				if((!isFlying && playerTurn.moves >= nbMoves+1) || (isFlying && playerTurn.moves >= nbMoves+2))
+					seekAroundTo(newPosition, startPosition, pathPointsArray, isFlying, nbMoves);
+			}
+		}
+	});
+}
+
+/*function seekAroundTo(currentPosition, endPosition, pathPointsArray = [], nbMoves = 0){
+	nbMoves ++;
+	let xMoves = currentPosition.x - endPosition.x;
+	let zMoves = currentPosition.z - endPosition.z;
+	let ray;
+	let newPosition
+
+	if(Math.abs(xMoves) > Math.abs(zMoves)){
+		// go on x axis first
+		newPosition = new Vector3(currentPosition.x - Math.sign(xMoves), 0.3, currentPosition.z);
+	}else{
+		// go on z axis first
+		newPosition = new Vector3(currentPosition.x, 0.3, currentPosition.z - Math.sign(zMoves));
+	}
+
+	ray = new THREE.Raycaster(
+		newPosition,
+		new Vector3(0,-1,0)
+	);
+	//console.log(newPosition);
+
+	const intersects = ray.intersectObjects( allTiles, true );
+	if(intersects.length > 0){
+		// if endPosition is found
+		if(newPosition.x === endPosition.x && newPosition.z === endPosition.z){
+			pathPointsArray.push(newPosition);
+			console.log(pathPointsArray);
+			return pathPointsArray;
+		}else{
+			//if tile is occuped
+
+		}
+		//let returnedPath = seekAroundTo(newPosition, endPosition);
+		//if()
+	}else{
+		// check sides
+		// if !intersect
+			//check back
+				// if !intersect
+					//return false
+	}
+}*/
 
 function arrayRemove(arr, value) { 
     
