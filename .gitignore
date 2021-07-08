@@ -1,1 +1,4 @@
-./public/3DModels/temp
+/public/3DModels/temp
+/.vscode
+/.idea
+
