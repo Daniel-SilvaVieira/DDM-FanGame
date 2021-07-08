@@ -93,15 +93,15 @@ body{
 .itemCount{
     background-color: rgba(48, 47, 47, 0.7);
     color: #FFF;
-    width: 25px;
+    width: 30px;
     height: 25px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.pad4px{
-    padding: 4px;
+.padSides4px{
+    padding: 0 4px;
 }
 /* utilisé pour plusieurs types d'icônes */
 .gameIcon{
@@ -155,10 +155,13 @@ body{
     min-height: 118px;
 }
 .effectCost{
-    padding: 0 10px;
     border-right: 1px solid #FFF;
     display: flex;
     align-items: center;
+}
+.effectCost button{
+    width: 30px;
+    height: 100%;
 }
 .effectDesc{
     padding: 2px 6px;
