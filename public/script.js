@@ -29,6 +29,8 @@ let selectedMonster1 = null,
 selectedMonster2 = null,
 selectedMonsterIcon = null,
 selectedMonsterIconID = null;
+let iconFight = null,
+iconAnimationDirection = true;
 
 const player = new Player('Yugi Muto', true, 'Blue', 3, 0, 0, 0, 0, 0),
 opponent = new Player('Duke Devlin', false, 'Red', 3, 0, 0, 0, 0, 0);
@@ -85,6 +87,10 @@ const pathpatterns = [
 ];
 // Moving
 let entireMovingPath = []; // path followed by the moving monster
+let entireMovingPathIndex = 0; //curent point
+let monsterIsMoving = null;	// null if not, or mouving monster
+const SPEED = 2;
+
 // Dices
 const DICE1 = ['lv1sum.png', 'lv1sum.png', 'lv1sum.png', 'lv1sum.png', 'lv1move.png', 'lv1shieldx2.png'];
 const DICE2 = ['lv2sum.png', 'lv2sum.png', 'lv2sum.png', 'lv2movex2.png', 'lv2attackx2.png', 'lv2magicx2.png'];
@@ -96,7 +102,7 @@ let redLastDice = [1,1,1];
 let composer, effectFXAA, outlinePass;
 let selectedObjects = [];
 // config
-
+let then = 0; // used to deltaTime
 // Loaders
 const textureLoaderSky = new THREE.TextureLoader();
 textureLoaderSky.setPath( 'public/skybox/' );
@@ -107,7 +113,7 @@ model3DFBXLoader.setPath('public/3DModels/');
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath( './libs/three.js/examples/js/libs/draco/' );
 model3DFBXLoader.setDRACOLoader( dracoLoader );
-// JQuery
+// JQuery selectors
 const btnAddDie1 = $('#addDie1'),
 btnAddDie2 = $('#addDie2'),
 btnAddDie3 = $('#addDie3'),
@@ -185,13 +191,84 @@ function init(){
 }
 
 // Mises à jour de l'application
-function update(){
-	orbitControls.update();
+function update(now){
+	// update deltaTime
+	now *= 0.001;  // make it seconds
+	const deltaTime = now - then;
+	then = now;
+
+	//monsters move
+	if(monsterIsMoving){
+		if( (entireMovingPathIndex+1) >= entireMovingPath.length){
+			// PATH FINDING HERE
+			let startPosition = monsterIsMoving.position;
+			let isFlying = false;
+			let digTunnel = false;
+			if(monsterIsMoving.userData.class.movement == 'Flying')
+				isFlying = true;
+			if(monsterIsMoving.userData.class.movement == 'Tunnel')
+				digTunnel = true;
+
+			if( (!isFlying && playerTurn.moves >= 1) || (isFlying && playerTurn.moves >= 2) ){
+				seekAroundTo(startPosition, startPosition, [], isFlying, digTunnel);
+			}
+			entireMovingPath = [];
+			entireMovingPathIndex = 0;
+			monsterIsMoving = null;
+		}else{
+			const targetPosition = entireMovingPath[entireMovingPathIndex+1];
+			
+			const DIST =  Math.sqrt(
+				Math.pow((monsterIsMoving.position.x - targetPosition.x), 2) +
+				Math.pow((monsterIsMoving.position.z - targetPosition.z), 2)
+			);
+			if(DIST > 0.0001){
+				console.log('start moving');
+				const direction_x = Math.sign(monsterIsMoving.position.x - targetPosition.x);
+				const direction_z = Math.sign(monsterIsMoving.position.z - targetPosition.z);
+			
+				monsterIsMoving.position.x -= SPEED * (DIST+0.1) * direction_x * deltaTime;
+				monsterIsMoving.position.z -= SPEED * (DIST+0.1) * direction_z * deltaTime;
+			
+				const newDirection_x = Math.sign(monsterIsMoving.position.x - targetPosition.x);
+				const newDirection_z = Math.sign(monsterIsMoving.position.z - targetPosition.z);
+			
+				// si la cible est dépassée
+				if (newDirection_x !== direction_x || newDirection_z !== direction_z) {
+					monsterIsMoving.position.x = targetPosition.x;
+					monsterIsMoving.position.y = 0.15;
+					monsterIsMoving.position.z = targetPosition.z;
+					entireMovingPathIndex++;
+				}
+			}else{	// fin du mouvepment
+				monsterIsMoving.position.x = targetPosition.x;
+				monsterIsMoving.position.y = 0.15;
+				monsterIsMoving.position.z = targetPosition.z;
+				entireMovingPathIndex++;
+			}
+		}
+	}
+
+	//iconFight animation
+	if(iconFight){
+		iconFight.rotation.y += 0.01;
+
+		if(iconAnimationDirection){
+			iconFight.position.y -= 0.01;
+			if(iconFight.position.y <= 1.8)
+				iconAnimationDirection = !iconAnimationDirection;
+		}else{
+			iconFight.position.y += 0.01;
+			if(iconFight.position.y >= 2.2)
+				iconAnimationDirection = !iconAnimationDirection;
+		}
+	}
 }
 
 // Boucle d'animation
-function animate(){
-	update();
+function animate(now){
+	orbitControls.update();
+	update(now);
 
 	// Déclenche l'affichage
 	//renderer.render(scene, camera);
@@ -1266,12 +1343,13 @@ function onMouseUp(event) {
 									allTiles.push(tile);
 								});
 								movingPath = null;
+								
+								unselectMonster();
 	
 							}, undefined, function ( error ) {
 								console.error( error );
 							} );
 	
-							monsterInfos1.css('display', 'none');
 							btnEndTurn.html('End Turn');
 							isSummoning = 0;
 							leftSummon --;
@@ -1297,41 +1375,92 @@ function onMouseUp(event) {
 					}
 					
 					if(aMonster.userData.class.owner.color === playerTurn.color){
+						unselectMonster();
+						//outline effect
+						addSelectedObject( aMonster );
+						outlinePass.selectedObjects = selectedObjects;
 						selectedMonster1 = aMonster;
 						
 						// PATH FINDING HERE
 						let startPosition = selectedMonster1.position;
 						let isFlying = false;
-						if(selectedMonster1.movement === 'Flying')
+						let digTunnel = false;
+						if(selectedMonster1.userData.class.movement == 'Flying')
 							isFlying = true;
-						if((!isFlying && playerTurn.moves >= 1) || (isFlying && playerTurn.moves >= 2)){
-							console.log('start seeking around');
-							seekAroundTo(startPosition, startPosition, [startPosition], isFlying);
+						if(selectedMonster1.userData.class.movement == 'Tunnel')
+							digTunnel = true;
+
+						if( (!isFlying && playerTurn.moves >= 1) || (isFlying && playerTurn.moves >= 2) ){
+							seekAroundTo(startPosition, startPosition, [], isFlying, digTunnel);
 						}
 					}
-					else
+					else{
 						selectedMonster2 = aMonster;
+						// see if monster can be attacked
+						if(selectedMonster1){
+							const dist =  Math.sqrt(
+								Math.pow((aMonster.position.x - selectedMonster1.position.x), 2) +
+								Math.pow((aMonster.position.z - selectedMonster1.position.z), 2)
+							);
+
+							if(dist > 0.9 && dist < 1.1){
+								// Load attack icon
+								model3DFBXLoader.load( '3Dicons/fightIcon.glb', function ( object ) {
+		
+									object.scene.position.x = aMonster.position.x;
+									object.scene.position.y = aMonster.position.y + 2;
+									object.scene.position.z = aMonster.position.z;
+	
+									// Monster stats
+									object.scene.userData.pathToIt = null;
+
+									iconFight = object.scene;
+									scene.add(object.scene);
+		
+								}, undefined, function ( error ) {
+									console.error( error );
+								} );
+							}else{
+								// distance attack
+								let positionsToTest = [];
+								positionsToTest.push(new Vector3(aMonster.position.x +1, 0.3, aMonster.position.z));
+								positionsToTest.push(new Vector3(aMonster.position.x -1, 0.3, aMonster.position.z));
+								positionsToTest.push(new Vector3(aMonster.position.x, 0.3, aMonster.position.z +1));
+								positionsToTest.push(new Vector3(aMonster.position.x, 0.3, aMonster.position.z -1));
+							}
+
+						}
+
+					}
 					showMonsterInfos(aMonster.userData.class);
 
 
 				}else if(intersectsTile.length >= 1){
-					if(selectedMonster1){
+					if(selectedMonster1 && monsterIsMoving === null){
 						if(!selectedMonster1.available && !selectedMonster1.dead && leftDiceThrows === 0){	 //move selected monster
 							// MOVING
-							let startPosition = selectedMonster1.position;
-							let endPosition = new Vector3();
-							intersectsTile[0].object.getWorldPosition(endPosition);
+							const aTile = intersectsTile[0].object;
 
-							if(selectedMonster1){
+							if(aTile.userData.movementsNeeded !== null){
+								increasePlayerMoves(-aTile.userData.movementsNeeded, playerTurn);
+								const startPosition = selectedMonster1.position;
 
+								// set ending tile occupied
+								aTile.userData.occupied = true;
+								entireMovingPath = aTile.userData.pointsToIt;
+								entireMovingPathIndex = 0;
+								monsterIsMoving = selectedMonster1;
+								// set strating tile !occupied
+								const ray = new THREE.Raycaster(new Vector3(startPosition.x, 0.3, startPosition.z),	new Vector3(0,-1,0));
+								const intersects = ray.intersectObjects( allTiles, true );
+								intersects[0].object.userData.occupied = false;
+	
+								//followPath(selectedMonster1, aTile.userData.pointsToIt);
 							}
-							
-							/*selectedMonster1.position.x = endPosition.x;
-							selectedMonster1.position.y = endPosition.y;
-							selectedMonster1.position.z = endPosition.z;*/
-
 						}
 					}
+				}else{
+					unselectMonster();
 				}
 				
 			}
@@ -1340,104 +1469,176 @@ function onMouseUp(event) {
 }
 
 
-function seekAroundTo(currentPosition, startPosition, pathPointsArray = [], isFlying, nbMoves = 0){
+
+// add object to apply outline effect
+function addSelectedObject( object ) {
+	selectedObjects = [];
+	selectedObjects.push( object );
+}
+
+function unselectMonster(){
+	// Unselect monster
+	monsterInfos1.css('display', 'none');
+	monsterInfos2.css('display', 'none');
+	selectedMonster1 = null;
+	selectedMonster2 = null;
+	outlinePass.selectedObjects = [];
+	if(iconFight){
+		scene.remove(iconFight);
+		iconFight = null;
+	}
+	allTiles.forEach(aTile =>{
+		aTile.material.forEach(face => {
+			face.opacity = 1;
+		});
+		
+		aTile.userData.movementsNeeded = null;
+		aTile.userData.pointsToIt = null;
+	});
+}
+
+
+function seekAroundTo(currentPosition, startPosition, pathPointsArray = [], isFlying, digTunnel, nbMoves = 0){
 	nbMoves ++;
 	if(isFlying)
 		nbMoves ++;
 	let xMoves = currentPosition.x - startPosition.x;
 	let zMoves = currentPosition.z - startPosition.z;
 	let ray;
-	/*let newPosition = new Vector3();
-	intersectsTile[0].object.getWorldPosition(newPosition);*/
-	pathPointsArray.push(currentPosition);
 
 	let positionsToTest = [];
 
-	if(xMoves === 0 && zMoves === 0){
+	if( (xMoves === 0 && zMoves === 0) || (xMoves !== 0 && zMoves !== 0) ){
 		positionsToTest.push(new Vector3(currentPosition.x +1, 0.3, currentPosition.z));
 		positionsToTest.push(new Vector3(currentPosition.x -1, 0.3, currentPosition.z));
 		positionsToTest.push(new Vector3(currentPosition.x, 0.3, currentPosition.z +1));
 		positionsToTest.push(new Vector3(currentPosition.x, 0.3, currentPosition.z -1));
-	}/*else if(xMoves > 0){
-		positionsToTest.push(new Vector3(currentPosition.x + 1, 0.3, currentPosition.z));
-		positionsToTest.push(new Vector3(currentPosition.x - Math.sign(xMoves), 0.3, currentPosition.z));
-	}else if(zMoves < xMoves){
-		positionsToTest.push(new Vector3(currentPosition.x, 0.3, currentPosition.z + Math.sign(xMoves)));
 	}else{
-
-	}*/
+		if(xMoves !== 0){
+			positionsToTest.push( new Vector3(currentPosition.x + Math.sign(xMoves), 0.3, currentPosition.z) );
+		}
+		if(zMoves !== 0){
+			positionsToTest.push( new Vector3(currentPosition.x, 0.3, currentPosition.z + Math.sign(zMoves)) );
+		}
+		if(xMoves === 0){
+			positionsToTest.push( new Vector3(currentPosition.x + 1, 0.3, currentPosition.z) );
+			positionsToTest.push( new Vector3(currentPosition.x - 1, 0.3, currentPosition.z) );
+		}
+		if(zMoves === 0){
+			positionsToTest.push( new Vector3(currentPosition.x, 0.3, currentPosition.z + 1) );
+			positionsToTest.push( new Vector3(currentPosition.x, 0.3, currentPosition.z - 1) );
+		}
+	}
 
 	positionsToTest.forEach(function(newPosition){
 		ray = new THREE.Raycaster(
 			newPosition,
 			new Vector3(0,-1,0)
 		);
-		//console.log(newPosition);
 	
 		const intersects = ray.intersectObjects( allTiles, true );
 		if(intersects.length > 0){
 			const aTile = intersects[0].object;
-			console.log(aTile);
-			if(!aTile.userData.occupied && (aTile.userData.movementsNeeded > nbMoves || aTile.userData.movementsNeeded == null)){
-				aTile.material.forEach(function(face){
-					face.transparent = true;
-					face.opacity = 0.5;
-				});
-				aTile.userData.movementsNeeded = nbMoves;
-				aTile.userData.pointsToIt = pathPointsArray;
-	
-				if((!isFlying && playerTurn.moves >= nbMoves+1) || (isFlying && playerTurn.moves >= nbMoves+2))
-					seekAroundTo(newPosition, startPosition, pathPointsArray, isFlying, nbMoves);
+			if( (digTunnel || !aTile.userData.occupied)){
+				let isABetterWay = false;
+				if (aTile.userData.movementsNeeded == null )
+					isABetterWay = true;
+				else if (nbMoves < aTile.userData.movementsNeeded)
+					isABetterWay = true;
+
+				if(isABetterWay){
+					let newPathPoints = new Array().concat(pathPointsArray);
+					newPathPoints.push(newPosition);
+
+					if(!aTile.userData.occupied){
+						aTile.material.forEach(function(face){
+							face.transparent = true;
+							face.opacity = 0.5;
+						});
+						aTile.userData.movementsNeeded = nbMoves;
+						aTile.userData.pointsToIt = newPathPoints;
+					}
+		
+					if( (!isFlying && playerTurn.moves >= nbMoves+1) || (isFlying && playerTurn.moves >= nbMoves+2) )
+						seekAroundTo(newPosition, startPosition, newPathPoints, isFlying, digTunnel, nbMoves);
+				}
 			}
 		}
 	});
 }
 
-/*function seekAroundTo(currentPosition, endPosition, pathPointsArray = [], nbMoves = 0){
-	nbMoves ++;
-	let xMoves = currentPosition.x - endPosition.x;
-	let zMoves = currentPosition.z - endPosition.z;
-	let ray;
-	let newPosition
+/*function followPath(aMonster, path){
+	const DELAY = 600;
+	let currentDelay = 0;
 
-	if(Math.abs(xMoves) > Math.abs(zMoves)){
-		// go on x axis first
-		newPosition = new Vector3(currentPosition.x - Math.sign(xMoves), 0.3, currentPosition.z);
-	}else{
-		// go on z axis first
-		newPosition = new Vector3(currentPosition.x, 0.3, currentPosition.z - Math.sign(zMoves));
-	}
+	// follow path
+	path.forEach(point => {
+		setTimeout(function(){
+			aMonster.position.x = point.x;
+			aMonster.position.y = 0.15;
+			aMonster.position.z = point.z;
+			moveTo(aMonster, point);
+			
+		}, currentDelay);
+		
+		currentDelay += DELAY;
+	});
 
-	ray = new THREE.Raycaster(
-		newPosition,
-		new Vector3(0,-1,0)
+	// end path with reset moves indicator
+	setTimeout(function(){
+		allTiles.forEach(aTile =>{
+			aTile.material.forEach(face => {
+				face.opacity = 1;
+			});
+			
+			aTile.userData.movementsNeeded = null;
+			aTile.userData.pointsToIt = null;
+		});
+
+		let isFlying = false;
+		let digTunnel = false;
+		if(aMonster.userData.class.movement == 'Flying')
+			isFlying = true;
+		if(aMonster.userData.class.movement == 'Tunnel')
+			digTunnel = true;
+
+		if( (!isFlying && playerTurn.moves >= 1) || (isFlying && playerTurn.moves >= 2) )
+			seekAroundTo(aMonster.position, aMonster.position, [], isFlying, digTunnel);
+	}, DELAY * (path.length-1) );
+}
+
+function moveTo(aMonster, targetPosition) {
+	//const SPEED = 0.001;
+	const DIST =  Math.sqrt(
+		Math.pow((aMonster.position.x - targetPosition.x), 2) +
+		Math.pow((aMonster.position.z - targetPosition.z), 2)
 	);
-	//console.log(newPosition);
-
-	const intersects = ray.intersectObjects( allTiles, true );
-	if(intersects.length > 0){
-		// if endPosition is found
-		if(newPosition.x === endPosition.x && newPosition.z === endPosition.z){
-			pathPointsArray.push(newPosition);
-			console.log(pathPointsArray);
-			return pathPointsArray;
+	if(DIST < 0.0001){
+		const direction_x = Math.sign(aMonster.position.x - targetPosition.x);
+		const direction_z = Math.sign(aMonster.position.z - targetPosition.z);
+	
+		aMonster.position.x += SPEED * DIST * direction_x;
+		aMonster.position.z += SPEED * DIST * direction_z;
+	
+		const newDirection_x = Math.sign(aMonster.position.x - targetPosition.x);
+		const newDirection_z = Math.sign(aMonster.position.z - targetPosition.z);
+	
+		// si la cible est dépassée
+		if (newDirection_x !== direction_x || newDirection_z !== direction_z) {
+			aMonster.position.x = targetPosition.x;
+			aMonster.position.y = 0.15;
+			aMonster.position.z = targetPosition.z;
 		}else{
-			//if tile is occuped
-
+			moveTo(aMonster, targetPosition);
 		}
-		//let returnedPath = seekAroundTo(newPosition, endPosition);
-		//if()
 	}else{
-		// check sides
-		// if !intersect
-			//check back
-				// if !intersect
-					//return false
+		aMonster.position.x = targetPosition.x;
+		aMonster.position.y = 0.15;
+		aMonster.position.z = targetPosition.z;
 	}
 }*/
 
-function arrayRemove(arr, value) { 
-    
+function arrayRemove(arr, value) {
 	for( var i = 0; i < arr.length; i++){
         if ( arr[i].equals(value)) { 
             arr.splice(i, 1);
